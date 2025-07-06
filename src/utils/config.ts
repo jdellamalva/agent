@@ -1,3 +1,7 @@
+// Load environment variables first
+import dotenv from 'dotenv';
+dotenv.config();
+
 export interface LoggingConfig {
   level: string;
   maxFileSize: number;
@@ -89,7 +93,7 @@ export const defaultConfig: AgentConfig = {
 
 // Configuration validation
 export const validateConfig = (config: AgentConfig): void => {
-  // Phase 2: Only validate Slack requirements
+  // Phase 2: Slack requirements
   if (!config.slack.botToken) {
     throw new Error('SLACK_BOT_TOKEN is required');
   }
@@ -102,6 +106,11 @@ export const validateConfig = (config: AgentConfig): void => {
     throw new Error('SLACK_APP_TOKEN is required');
   }
   
+  // Phase 3: OpenAI requirements (now that we have the key)
+  if (!config.openai.apiKey) {
+    throw new Error('OPENAI_API_KEY is required');
+  }
+  
   // Basic validation for agent settings
   if (config.agent.maxLoopIterations <= 0) {
     throw new Error('MAX_LOOP_ITERATIONS must be greater than 0');
@@ -111,8 +120,7 @@ export const validateConfig = (config: AgentConfig): void => {
     throw new Error('CONTEXT_WINDOW_SIZE must be greater than 0');
   }
   
-  // Phase 3: Will validate OpenAI requirements later
-  // Phase 4+: Will validate security requirements later
+  // Phase 4+: Will validate security and other requirements later
 };
 
 export default defaultConfig;

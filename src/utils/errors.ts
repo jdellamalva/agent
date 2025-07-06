@@ -50,7 +50,28 @@ export class SlackError extends AgentError {
 
 export class OpenAIError extends AgentError {
   constructor(message: string, code: string, context?: any) {
-    super(message, `OPENAI_${code}`, 500, true, context);
+    const statusCode = OpenAIError.getStatusCodeFromErrorType(code);
+    super(message, `OPENAI_${code}`, statusCode, true, context);
+  }
+
+  private static getStatusCodeFromErrorType(code: string): number {
+    switch (code) {
+      case 'RATE_LIMIT_EXCEEDED':
+        return 429;
+      case 'INSUFFICIENT_QUOTA':
+      case 'INVALID_API_KEY':
+        return 401;
+      case 'INVALID_REQUEST':
+        return 400;
+      case 'MODEL_NOT_FOUND':
+        return 404;
+      case 'SERVER_ERROR':
+        return 500;
+      case 'TIMEOUT':
+        return 408;
+      default:
+        return 500;
+    }
   }
 }
 
