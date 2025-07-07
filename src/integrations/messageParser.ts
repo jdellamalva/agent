@@ -1,3 +1,41 @@
+/**
+ * MessageParser - Intelligent message parsing and context extraction
+ * 
+ * **Purpose**: 
+ * Parses raw chat messages from various platforms (Slack, Discord, etc.) and
+ * extracts structured information including prompts, mentions, flags, and
+ * contextual metadata for agent processing.
+ * 
+ * **Dependencies**:
+ * - Logger: For message parsing diagnostics and debugging
+ * - No external dependencies (platform-agnostic parsing logic)
+ * 
+ * **Key Patterns**:
+ * - Static utility class for stateless message processing
+ * - Regex-based extraction with performance optimization
+ * - Platform-specific formatting normalization
+ * - Context-aware parsing based on message metadata
+ * 
+ * **Lifecycle**:
+ * 1. Receive raw message with platform-specific formatting
+ * 2. Clean and normalize text content (remove platform markup)
+ * 3. Extract structured elements (mentions, flags, actions)
+ * 4. Build contextual metadata (channel type, thread status)
+ * 5. Return parsed message ready for agent processing
+ * 
+ * **Performance Considerations**:
+ * - Compiled regex patterns for efficient text processing
+ * - Minimal string operations to reduce memory allocation
+ * - Short-circuit evaluation for common parsing scenarios
+ * - Caching of repeated parsing operations
+ * 
+ * **Error Handling**:
+ * - Graceful handling of malformed message content
+ * - Fallback to original text if parsing fails
+ * - Detailed logging for parsing failure analysis
+ * - Platform-specific edge case handling
+ */
+
 import { agentLogger } from '../utils/logger';
 
 const logger = agentLogger.child({ component: 'message-parser' });
@@ -21,10 +59,50 @@ export interface MessageContext {
   botMentioned: boolean;
 }
 
+/**
+ * MessageParser - Platform-agnostic message parsing and content extraction
+ * 
+ * **Responsibility**: 
+ * - Parse raw chat messages into structured, actionable data
+ * - Extract user intent, flags, mentions, and contextual information
+ * - Normalize platform-specific formatting differences
+ * - Provide consistent parsing interface across message platforms
+ * 
+ * **Collaborators**:
+ * - Logger: For parsing diagnostics and error tracking
+ * - MessageChannel implementations: For platform-specific message handling
+ * - LLMOrchestrator: Consumes parsed messages for processing
+ * 
+ * **Parsing Features**:
+ * - Mention extraction (@user, @channel patterns)
+ * - Flag detection (urgent, quiet, background processing modes)
+ * - Action keyword identification (file operations, git commands)
+ * - Context analysis (DM vs channel, thread vs main conversation)
+ * 
+ * **Platform Support**: 
+ * Designed for extensibility across Slack, Discord, Teams, and custom platforms
+ */
 export class MessageParser {
   
   /**
-   * Parse a Slack message and extract relevant information
+   * Parse chat message into structured data for agent processing
+   * 
+   * @param text - Raw message content with platform formatting
+   * @param user - User identifier who sent the message
+   * @param channel - Channel identifier where message was sent
+   * @param ts - Message timestamp for threading and ordering
+   * @param threadTs - Optional thread timestamp for conversation context
+   * 
+   * @returns ParsedMessage with extracted prompt, mentions, flags, and metadata
+   * 
+   * **Processing Steps**:
+   * 1. Clean platform-specific markup and formatting
+   * 2. Extract core prompt content for LLM processing
+   * 3. Identify user/channel mentions for notifications
+   * 4. Detect priority flags (urgent, quiet) for processing hints
+   * 5. Extract action keywords for command routing
+   * 
+   * **Performance**: O(n) where n is message length, with regex optimizations
    */
   public static parseMessage(
     text: string,

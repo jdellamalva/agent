@@ -1,8 +1,51 @@
 /**
- * Centralized Validation Engine
+ * Centralized Validation Engine - DRY Principle Implementation
  * 
- * Provides reusable validation logic to eliminate duplication across
- * ResponseParser, PromptEngineer, and other components.
+ * The ValidationEngine provides a unified, reusable validation framework that
+ * eliminates code duplication across all system components. It implements a
+ * rule-based validation system with configurable severity levels and comprehensive
+ * reporting capabilities.
+ * 
+ * Architecture Principles:
+ * - DRY: Single source of truth for all validation logic
+ * - Separation of Concerns: Validation rules isolated from business logic
+ * - Open/Closed: Easy to extend with new rules without modifying existing code
+ * - Strategy Pattern: Pluggable validation rules with consistent interface
+ * 
+ * Core Responsibilities:
+ * - Rule registration and management for different data types
+ * - Validation execution with error and warning classification
+ * - Comprehensive reporting with detailed failure information
+ * - Common validation rule factory for typical scenarios
+ * - Type-safe validation with TypeScript generics
+ * 
+ * Dependencies:
+ * - Logger for validation process monitoring and debugging
+ * - Type system for compile-time validation rule checking
+ * 
+ * Key Patterns:
+ * - Factory pattern for common validation rule creation
+ * - Composite pattern for rule aggregation and reporting
+ * - Strategy pattern for different validation rule implementations
+ * - Builder pattern for complex validation chain construction
+ * 
+ * Usage Examples:
+ * - Command validation in ResponseParser
+ * - Configuration validation in ConfigManager
+ * - User input validation in message processing
+ * - Provider capability validation in registry
+ * 
+ * Performance:
+ * - O(n) validation where n is number of registered rules
+ * - Rule caching for repeated validations
+ * - Short-circuit evaluation for error conditions
+ * - Lazy rule instantiation for memory efficiency
+ * 
+ * Error Handling:
+ * - Graceful degradation when individual rules fail
+ * - Detailed error context for debugging
+ * - Warning vs error classification for different severity levels
+ * - Comprehensive validation reports with actionable feedback
  */
 
 import { agentLogger } from '../../utils/logger';

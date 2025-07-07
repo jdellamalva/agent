@@ -1,8 +1,45 @@
 /**
- * Provider-Agnostic Configuration System
+ * Provider-Agnostic Configuration Management System
  * 
- * Handles dynamic configuration loading for different providers
- * while maintaining a unified interface.
+ * The ConfigManager provides centralized configuration management for the entire
+ * LLM Agent system, supporting dynamic provider registration, environment-based
+ * configuration loading, and runtime configuration validation.
+ * 
+ * Architecture:
+ * - Singleton pattern for global configuration access
+ * - Provider-agnostic design supporting multiple LLM and channel providers
+ * - Environment-driven configuration with fallback defaults
+ * - Runtime validation with detailed error reporting
+ * - Custom configuration loader support for extensibility
+ * 
+ * Dependencies:
+ * - Environment variables for sensitive configuration
+ * - Logger for configuration validation and loading events
+ * - Provider-specific configuration schemas
+ * 
+ * Key Patterns:
+ * - Singleton for global configuration state
+ * - Factory pattern for provider configuration creation
+ * - Strategy pattern for environment-specific configuration
+ * - Observer pattern for configuration change notifications
+ * 
+ * Configuration Hierarchy:
+ * 1. Environment variables (highest priority)
+ * 2. Custom configuration loaders
+ * 3. Default configuration values (fallback)
+ * 
+ * Lifecycle:
+ * 1. Initialize with environment variable loading
+ * 2. Register provider configurations dynamically
+ * 3. Validate configuration completeness and correctness
+ * 4. Provide configuration access throughout application lifecycle
+ * 5. Support runtime configuration updates for providers
+ * 
+ * Security Considerations:
+ * - API keys and secrets loaded from environment only
+ * - No sensitive data logged or exposed in error messages
+ * - Configuration validation prevents insecure defaults
+ * - Provider isolation prevents configuration cross-contamination
  */
 
 import dotenv from 'dotenv';

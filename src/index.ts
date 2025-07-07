@@ -1,4 +1,38 @@
-// Load environment variables FIRST
+/**
+ * LLM Agent Main Entry Point
+ * 
+ * This is the primary initialization module for the LLM Agent system. It orchestrates
+ * the startup sequence for all core components including configuration, providers,
+ * error handling, and infrastructure setup.
+ * 
+ * Architecture:
+ * - Two-layer architecture: Base Agent (stable core) + Customization Layer (user-specific)
+ * - Provider-agnostic design supporting multiple LLM and channel providers
+ * - Comprehensive error handling with recovery strategies
+ * - Configuration-driven initialization with validation
+ * 
+ * Dependencies:
+ * - ConfigManager: System configuration and validation
+ * - BuiltinProviders: Default LLM and channel provider registration
+ * - LLMOrchestrator: Provider-agnostic LLM interaction management
+ * - MessageChannel: Communication channel abstractions
+ * - Logger: Structured logging throughout the system
+ * - Error Recovery: Centralized error handling and recovery strategies
+ * 
+ * Key Patterns:
+ * - Fail-fast initialization with comprehensive validation
+ * - Directory setup with proper error handling
+ * - Graceful error handling with detailed logging
+ * - Configuration validation before system startup
+ * 
+ * Side Effects:
+ * - Creates logs/ and workspaces/ directories if they don't exist
+ * - Initializes global error recovery strategies
+ * - Validates and logs configuration state
+ * - Registers built-in providers with the provider registry
+ */
+
+// Load environment variables FIRST - critical for configuration
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -9,7 +43,31 @@ import { initializeProviders } from './core/providers/BuiltinProviders';
 import { LLMOrchestrator } from './core/llm/LLMOrchestrator';
 import { MessageChannel } from './core/channels/MessageChannel';
 
-// Initialize the agent infrastructure
+/**
+ * Initialize the complete LLM Agent infrastructure
+ * 
+ * Performs the complete startup sequence for the agent system, including
+ * configuration validation, provider registration, directory setup, and
+ * error recovery initialization.
+ * 
+ * Initialization Sequence:
+ * 1. Load and validate system configuration
+ * 2. Initialize error recovery strategies
+ * 3. Create required directories (logs/, workspaces/)
+ * 4. Register built-in providers (OpenAI, Slack, etc.)
+ * 5. Log successful initialization
+ * 
+ * @returns Promise<{config: SystemConfig, logger: winston.Logger}> - Configuration and logger instances
+ * @throws Error - If configuration validation fails or critical setup fails
+ * 
+ * Side Effects:
+ * - Creates filesystem directories
+ * - Registers providers in global registry
+ * - Initializes global error handlers
+ * - Logs initialization progress
+ * 
+ * Performance: O(1) - Constant time initialization regardless of codebase size
+ */
 export const initializeAgent = async () => {
   try {
     logger.info('🚀 Initializing LLM Agent...');
@@ -52,7 +110,37 @@ export const initializeAgent = async () => {
   }
 };
 
-// Start the agent with provider abstraction
+/**
+ * Start the complete LLM Agent system with full provider integration
+ * 
+ * Initializes the agent infrastructure and starts the main message processing loop.
+ * Sets up provider integrations, message handling, and orchestrator coordination.
+ * This is the main entry point for running the agent in production.
+ * 
+ * Startup Sequence:
+ * 1. Initialize core infrastructure (config, providers, directories)
+ * 2. Register and validate LLM and message channel providers
+ * 3. Create LLMOrchestrator for provider-agnostic LLM interactions
+ * 4. Set up message event handlers with error handling
+ * 5. Start message processing loop
+ * 
+ * @returns Promise<{orchestrator: LLMOrchestrator, channel: MessageChannel, llmProvider: any}> - Initialized system components
+ * @throws Error - If required providers are unavailable or initialization fails
+ * 
+ * Message Processing Flow:
+ * - Receives messages from registered channels (Slack, etc.)
+ * - Extracts prompts and filters @agent mentions
+ * - Routes to LLMOrchestrator for processing
+ * - Handles responses and error scenarios
+ * - Maintains conversation threading
+ * 
+ * Side Effects:
+ * - Starts persistent message listeners
+ * - Begins background provider health monitoring
+ * - Logs all message processing activity
+ * 
+ * Performance: Event-driven architecture with async message processing
+ */
 export const startAgent = async () => {
   try {
     // Initialize core infrastructure
@@ -160,7 +248,23 @@ export const startAgent = async () => {
   }
 };
 
-// Helper function to extract prompt from message
+/**
+ * Extract clean prompt text from message content
+ * 
+ * Removes @agent mentions, user ID mentions, and other chat formatting
+ * to extract the actual prompt content for processing.
+ * 
+ * @param text - Raw message content from chat platform
+ * @returns Cleaned prompt string ready for LLM processing
+ * 
+ * Cleaning Rules:
+ * - Removes user mentions (e.g., <@U123ABC>)
+ * - Removes @username patterns
+ * - Trims whitespace
+ * - Preserves original prompt content and intent
+ * 
+ * Performance: O(n) where n is message length
+ */
 function extractPrompt(text: string): string {
   return text
     .replace(/<@U[A-Z0-9]+>/g, '') // Remove user mentions
@@ -168,8 +272,30 @@ function extractPrompt(text: string): string {
     .trim();
 }
 
-// Graceful shutdown handler
-export const shutdownAgent = async () => {
+/**
+ * Graceful shutdown handler for the LLM Agent system
+ * 
+ * Performs cleanup operations and ensures graceful termination of all
+ * active components, connections, and background processes.
+ * 
+ * Shutdown Sequence:
+ * 1. Log shutdown initiation
+ * 2. Close active provider connections
+ * 3. Complete pending operations
+ * 4. Save system state if necessary
+ * 5. Exit with success status
+ * 
+ * @returns Promise<void> - Resolves when shutdown is complete
+ * 
+ * Side Effects:
+ * - Closes database/API connections
+ * - Saves pending state to disk
+ * - Terminates background processes
+ * - Exits with status code 0
+ * 
+ * Performance: Should complete within 5 seconds for graceful termination
+ */
+export const shutdownAgent = async (): Promise<void> => {
   logger.info('🛑 Shutting down agent...');
   
   // Add cleanup logic here

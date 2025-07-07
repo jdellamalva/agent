@@ -27,10 +27,65 @@ export interface ParsedResponse {
   userMessage?: string; // Human-readable response to user
 }
 
+/**
+ * Prompt Engineering System - Advanced prompt generation and response structuring
+ * 
+ * **Purpose**: 
+ * Converts natural language requests into structured prompts that guide LLMs
+ * to generate precise, executable commands with appropriate context and constraints.
+ * 
+ * **Dependencies**:
+ * - No external dependencies (pure prompt generation logic)
+ * - Consumed by: LLMOrchestrator for request processing
+ * - Used with: ResponseParser for command validation
+ * 
+ * **Key Patterns**:
+ * - Template-based prompt generation with dynamic context injection
+ * - Structured response formatting to ensure parseable LLM outputs
+ * - Context-aware action filtering based on available capabilities
+ * - Few-shot learning examples for complex command structures
+ * 
+ * **Lifecycle**:
+ * 1. Receive user request and environmental context
+ * 2. Generate system prompt with available actions and constraints
+ * 3. Inject project-specific context and conversation history
+ * 4. Format response requirements for structured command output
+ * 5. Return complete prompt ready for LLM processing
+ * 
+ * **Performance Considerations**:
+ * - Prompt templates are static and efficiently concatenated
+ * - Context injection is minimal to reduce token usage
+ * - Action lists are filtered to relevant capabilities only
+ * 
+ * **Error Handling**:
+ * - Graceful handling of missing context elements
+ * - Default fallbacks for undefined action lists
+ * - Validation hints embedded in prompts to guide LLM behavior
+ */
 export class PromptEngineer {
   
   /**
-   * Generate the system prompt for the LLM based on context
+   * Generate comprehensive system prompt for LLM request processing
+   * 
+   * @param context - Request context containing:
+   *   - userRequest: Natural language instruction from user
+   *   - projectContext: Current codebase and project state information
+   *   - availableActions: List of actions the agent can execute
+   *   - conversationHistory: Previous exchanges for context continuity
+   * 
+   * @returns Complete system prompt string optimized for structured command generation
+   * 
+   * **Prompt Engineering Strategy**:
+   * - Clear role definition and behavioral expectations
+   * - Explicit response format requirements with JSON schema
+   * - Context injection for project-aware decision making
+   * - Safety guidelines and approval requirements
+   * - Few-shot examples for complex command patterns
+   * 
+   * **Token Optimization**:
+   * - Concise but complete instruction set
+   * - Dynamic action filtering to include only relevant capabilities
+   * - Minimal context injection to stay within token limits
    */
   public generateSystemPrompt(context: SystemPromptContext): string {
     const basePrompt = `You are an advanced LLM agent capable of managing codebases and executing development tasks.

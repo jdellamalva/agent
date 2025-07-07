@@ -1,8 +1,37 @@
 /**
- * Performance Optimization Utilities
+ * CacheManager - High-performance caching and memoization system
  * 
- * Provides caching, memoization, and other performance optimizations
- * to improve system responsiveness and reduce redundant operations.
+ * **Purpose**: 
+ * Provides LRU caching, memoization, and performance optimization utilities
+ * to reduce redundant computations and improve system responsiveness across
+ * all agent components.
+ * 
+ * **Dependencies**:
+ * - Logger: For cache hit/miss metrics and eviction logging
+ * - No external dependencies (self-contained cache implementation)
+ * 
+ * **Key Patterns**:
+ * - LRU eviction strategy for memory efficiency
+ * - TTL-based cache expiration for data freshness
+ * - Memoization decorators for function result caching
+ * - Global cache instances for system-wide optimization
+ * 
+ * **Lifecycle**:
+ * 1. Initialize cache instances with size and TTL limits
+ * 2. Cache frequently accessed data (token estimates, API responses)
+ * 3. Automatic eviction based on LRU policy and TTL expiration
+ * 4. Metrics collection for cache effectiveness monitoring
+ * 
+ * **Performance Considerations**:
+ * - O(1) cache access using Map-based implementation
+ * - Configurable memory limits to prevent unbounded growth
+ * - Lazy eviction on access to minimize overhead
+ * - Hit/miss ratio tracking for optimization insights
+ * 
+ * **Error Handling**:
+ * - Graceful degradation when cache is full or unavailable
+ * - Automatic cleanup of expired entries
+ * - Safe handling of serialization errors for complex objects
  */
 
 import { agentLogger } from '../../utils/logger';
@@ -22,10 +51,42 @@ export interface CacheOptions {
   onEvict?: (key: string, value: any) => void;
 }
 
+/**
+ * LRUCache - Least Recently Used cache with TTL support
+ * 
+ * **Responsibility**: 
+ * - Efficient storage and retrieval of frequently accessed data
+ * - Automatic eviction of least recently used items when at capacity
+ * - TTL-based expiration for time-sensitive data
+ * - Hit/miss metrics for performance monitoring
+ * 
+ * **Collaborators**:
+ * - CacheEntry: Individual cached item with metadata
+ * - Logger: Performance metrics and eviction notifications
+ * 
+ * **Lifecycle**:
+ * 1. Initialize with capacity and TTL constraints
+ * 2. Store items with automatic timestamp and hit tracking
+ * 3. Retrieve items with LRU ordering update
+ * 4. Evict expired or excess items automatically
+ * 
+ * **Performance**: O(1) get/set operations, O(1) LRU updates using Map ordering
+ * **Memory**: Bounded by maxSize configuration to prevent memory leaks
+ */
 export class LRUCache<T> {
   private cache = new Map<string, CacheEntry<T>>();
   private options: Required<CacheOptions>;
 
+  /**
+   * Initialize LRU cache with configurable options
+   * 
+   * @param options - Cache configuration:
+   *   - ttl: Time-to-live in milliseconds (default: 5 minutes)
+   *   - maxSize: Maximum number of cached items (default: 1000)
+   *   - onEvict: Callback fired when items are evicted
+   * 
+   * **Side Effects**: Sets up internal data structures and default values
+   */
   constructor(options: CacheOptions = {}) {
     this.options = {
       ttl: options.ttl || 5 * 60 * 1000, // 5 minutes default
@@ -35,7 +96,17 @@ export class LRUCache<T> {
   }
 
   /**
-   * Get value from cache
+   * Retrieve value from cache with LRU and TTL validation
+   * 
+   * @param key - Cache key to lookup
+   * @returns Cached value if valid and not expired, undefined otherwise
+   * 
+   * **Side Effects**:
+   * - Updates LRU ordering by moving accessed item to end
+   * - Increments hit counter for accessed item
+   * - Removes expired items automatically
+   * 
+   * **Performance**: O(1) lookup and LRU update using Map operations
    */
   get(key: string): T | undefined {
     const entry = this.cache.get(key);

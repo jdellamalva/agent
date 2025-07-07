@@ -1,3 +1,40 @@
+/**
+ * Logger Utilities - Centralized logging system with structured output and rotation
+ * 
+ * **Purpose**: 
+ * Provides consistent, structured logging across all agent components with
+ * configurable log levels, file rotation, and component-specific child loggers
+ * for effective debugging and monitoring.
+ * 
+ * **Dependencies**:
+ * - winston: Production-grade logging library with transport support
+ * - path: For log file location management
+ * 
+ * **Key Patterns**:
+ * - Structured logging with JSON format for log aggregation
+ * - Child logger pattern for component-specific context
+ * - Transport-based routing (console for dev, files for production)
+ * - Automatic log rotation to prevent disk space issues
+ * 
+ * **Lifecycle**:
+ * 1. Initialize with environment-based configuration
+ * 2. Create component-specific child loggers with context
+ * 3. Log structured events with metadata and timestamps
+ * 4. Automatic file rotation and cleanup
+ * 5. Export logs for monitoring and analysis
+ * 
+ * **Performance Considerations**:
+ * - Asynchronous file writing to prevent blocking
+ * - Log level filtering to reduce I/O overhead
+ * - Efficient JSON serialization for structured data
+ * - Memory-bounded log buffers for high-throughput scenarios
+ * 
+ * **Error Handling**:
+ * - Graceful fallback to console if file writes fail
+ * - Error capture with full stack traces
+ * - Silent handling of logger initialization failures
+ */
+
 import winston from 'winston';
 import path from 'path';
 
@@ -21,6 +58,27 @@ const logColors = {
 
 winston.addColors(logColors);
 
+/**
+ * Winston logger instance with production-ready configuration
+ * 
+ * **Configuration Features**:
+ * - Environment-based log level control (LOG_LEVEL env var)
+ * - Structured JSON format for log aggregation and analysis
+ * - Automatic file rotation (5MB max, 5 files retained)
+ * - Error-only and combined log files for different monitoring needs
+ * - Colorized console output for development readability
+ * 
+ * **Metadata Injection**:
+ * - Service name and version for log correlation
+ * - Environment context for deployment-specific filtering
+ * - Timestamp precision for event sequencing
+ * - Stack trace capture for error debugging
+ * 
+ * **Transport Strategy**:
+ * - File transports for persistent storage and monitoring
+ * - Console transport for development and debugging
+ * - Automatic log rotation to prevent disk space issues
+ */
 // Create the logger instance
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',

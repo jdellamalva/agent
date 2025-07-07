@@ -1,8 +1,40 @@
 /**
- * Provider Registry System
+ * ProviderRegistry - Centralized provider discovery and lifecycle management
  * 
- * Central registry for managing LLM providers and message channels.
- * Enables dynamic discovery and instantiation of providers.
+ * **Purpose**: 
+ * Manages the registration, instantiation, and lifecycle of LLM providers and
+ * message channels through a plugin architecture that enables dynamic provider
+ * discovery and hot-swapping without system restarts.
+ * 
+ * **Dependencies**:
+ * - LLMProvider: Base interface for all LLM provider implementations
+ * - MessageChannel: Base interface for all channel implementations
+ * - Logger: For provider lifecycle and health monitoring
+ * 
+ * **Key Patterns**:
+ * - Factory pattern for provider instantiation with configuration
+ * - Registry pattern for centralized provider management
+ * - Singleton pattern ensuring single provider instances per type
+ * - Plugin architecture for extensible provider ecosystem
+ * 
+ * **Lifecycle**:
+ * 1. Provider registration with factory functions and metadata
+ * 2. Dynamic provider discovery and capability inspection
+ * 3. On-demand provider instantiation with configuration
+ * 4. Health monitoring and automatic recovery for failed providers
+ * 5. Graceful shutdown and resource cleanup on system exit
+ * 
+ * **Performance Considerations**:
+ * - Lazy loading of providers to reduce startup time
+ * - Connection pooling and reuse for expensive provider initialization
+ * - Provider health checks with circuit breaker pattern
+ * - Efficient lookup using Map-based registries (O(1) access)
+ * 
+ * **Error Handling**:
+ * - Automatic fallback to backup providers on failures
+ * - Detailed error context for provider initialization failures
+ * - Health monitoring with automatic provider recovery
+ * - Configuration validation before provider instantiation
  */
 
 import { agentLogger } from '../../utils/logger';
@@ -33,7 +65,28 @@ export interface RegistryStatus {
 }
 
 /**
- * Central provider registry for the agent system
+ * ProviderRegistry - Central provider management with plugin architecture
+ * 
+ * **Responsibility**: 
+ * - Register and discover LLM providers and message channels
+ * - Instantiate providers with proper configuration and error handling
+ * - Monitor provider health and handle failover scenarios
+ * - Provide unified interface for provider lifecycle management
+ * 
+ * **Collaborators**:
+ * - LLMProviderFactory: For creating provider instances
+ * - MessageChannelFactory: For creating channel instances
+ * - ConfigManager: For provider configuration management
+ * - Logger: For provider monitoring and diagnostics
+ * 
+ * **Lifecycle**:
+ * - Static initialization with built-in provider registration
+ * - Runtime provider discovery and registration
+ * - On-demand provider instantiation and caching
+ * - Health monitoring and automatic recovery
+ * 
+ * **Thread Safety**: 
+ * Uses static Maps with synchronized access for thread-safe operations
  */
 export class ProviderRegistry {
   private static llmFactories: Map<string, LLMProviderFactory> = new Map();

@@ -1,8 +1,40 @@
 /**
- * Rate Limiting System for LLM Agent
+ * RateLimiter - Advanced rate limiting and request queue management system
  * 
- * This module handles API rate limits, implements backoff strategies,
- * and manages request queuing to prevent hitting OpenAI rate limits.
+ * **Purpose**: 
+ * Prevents API rate limit violations by implementing intelligent request queuing,
+ * exponential backoff strategies, and multi-dimensional rate limiting (requests/tokens
+ * per minute/hour/day) for various LLM providers.
+ * 
+ * **Dependencies**:
+ * - Logger: For rate limit monitoring and violation tracking
+ * - OpenAIError: For rate limit specific error handling
+ * - No external dependencies (self-contained queue management)
+ * 
+ * **Key Patterns**:
+ * - Token bucket algorithm for smooth rate limiting
+ * - Priority queue for request ordering and emergency handling
+ * - Exponential backoff with jitter for retry strategies
+ * - Multi-dimensional limits (requests and tokens across time windows)
+ * 
+ * **Lifecycle**:
+ * 1. Initialize with provider-specific rate limit configurations
+ * 2. Queue incoming requests with priority and token estimates
+ * 3. Process queue based on current rate limit status
+ * 4. Apply exponential backoff for rate limit violations
+ * 5. Monitor and adjust rate limits based on provider responses
+ * 
+ * **Performance Considerations**:
+ * - Efficient priority queue using heap data structure
+ * - Sliding window counters for accurate rate limit tracking
+ * - Minimal overhead for rate limit checks (O(1) operations)
+ * - Memory-bounded queue to prevent excessive memory usage
+ * 
+ * **Error Handling**:
+ * - Automatic retry with exponential backoff for rate limit errors
+ * - Queue overflow protection with oldest request eviction
+ * - Graceful degradation when rate limits cannot be determined
+ * - Detailed metrics for rate limit analysis and optimization
  */
 
 import { agentLogger } from '../utils/logger';

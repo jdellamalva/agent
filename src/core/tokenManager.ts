@@ -31,6 +31,38 @@ export interface TokenOptimization {
   estimatedSavings: number;
 }
 
+/**
+ * TokenManager - Centralized token usage tracking and budget management
+ * 
+ * **Responsibility**: 
+ * - Track and estimate token usage for LLM API calls
+ * - Enforce daily and monthly budget constraints
+ * - Provide cost optimization recommendations
+ * - Cache token estimations for performance
+ * 
+ * **Collaborators**:
+ * - CacheManager: For memoization of token estimations
+ * - Logger: For usage tracking and budget warnings
+ * - LLM providers: For actual token usage recording
+ * 
+ * **Lifecycle**:
+ * 1. Initialize with budget constraints
+ * 2. Load historical usage from storage
+ * 3. Estimate tokens before API calls
+ * 4. Check budget constraints
+ * 5. Record actual usage after calls
+ * 6. Persist usage data to storage
+ * 
+ * **Performance Considerations**:
+ * - Token estimation is memoized for repeated text
+ * - Daily/monthly aggregations are cached
+ * - Storage operations are batched for efficiency
+ * 
+ * **Error Handling**:
+ * - Graceful degradation if storage is unavailable
+ * - Warning logs when approaching budget limits
+ * - Prevents API calls that would exceed budgets
+ */
 export class TokenManager {
   private usage: { [date: string]: TokenUsage } = {};
   private budget: TokenBudget;
@@ -44,6 +76,19 @@ export class TokenManager {
     }
   );
 
+  /**
+   * Initialize TokenManager with budget constraints
+   * 
+   * @param budget - Optional budget configuration. Missing values use sensible defaults:
+   *   - dailyLimit: 100,000 tokens
+   *   - monthlyLimit: 2,000,000 tokens  
+   *   - warningThreshold: 80% of limits
+   * 
+   * **Side Effects**:
+   * - Loads historical usage data from storage
+   * - Initializes memoized token estimation function
+   * - Sets up budget tracking structures
+   */
   constructor(budget?: Partial<TokenBudget>) {
     this.budget = {
       dailyLimit: 100000, // tokens per day
@@ -58,7 +103,13 @@ export class TokenManager {
   }
 
   /**
-   * Estimate tokens for a given text using a simple approximation (with caching)
+   * Estimate tokens for a given text using cached approximation
+   * 
+   * @param text - Input text to estimate tokens for
+   * @returns Estimated token count based on content type detection
+   * 
+   * **Performance**: Results are memoized using text length and first 100 chars as key
+   * **Algorithm**: Uses different ratios for code (1:3), JSON (1:3.5), and text (1:4)
    */
   public estimateTokens(text: string): number {
     return this.estimateTokensMemoized(text);
@@ -66,6 +117,16 @@ export class TokenManager {
 
   /**
    * Raw token estimation without caching
+   * 
+   * @param text - Input text to analyze
+   * @returns Token count estimate based on content type heuristics
+   * 
+   * **Algorithm Details**:
+   * - Code content (contains ```, function, class): 1 token per 3 chars
+   * - JSON content (contains {, }, "): 1 token per 3.5 chars  
+   * - Regular text: 1 token per 4 chars (English standard)
+   * 
+   * **Note**: This is an approximation - actual tokenization may vary by model
    */
   private estimateTokensRaw(text: string): number {
     // More sophisticated approximation based on text characteristics
@@ -86,7 +147,16 @@ export class TokenManager {
   }
 
   /**
-   * Check if a request fits within budget constraints
+   * Check if a request fits within daily and monthly budget constraints
+   * 
+   * @param estimatedTokens - Number of tokens the request is expected to consume
+   * @returns Object containing:
+   *   - canProceed: Whether the request can be made without exceeding limits
+   *   - reason: Human-readable explanation if request is blocked
+   *   - budgetStatus: Current usage statistics and remaining capacity
+   * 
+   * **Side Effects**: Logs warnings when approaching threshold limits
+   * **Error Handling**: Returns denial with specific reason for budget violations
    */
   public checkBudget(estimatedTokens: number): {
     canProceed: boolean;
@@ -134,7 +204,17 @@ export class TokenManager {
   }
 
   /**
-   * Record actual token usage after an API call
+   * Record actual token usage after an API call completes
+   * 
+   * @param usage - Actual token consumption data from LLM provider
+   * 
+   * **Side Effects**:
+   * - Updates daily usage totals
+   * - Triggers storage persistence
+   * - Logs usage for audit trail
+   * - May emit budget warnings if thresholds exceeded
+   * 
+   * **Performance**: Usage is accumulated in memory and persisted asynchronously
    */
   public recordUsage(usage: TokenUsage): void {
     const today = this.getDateString();

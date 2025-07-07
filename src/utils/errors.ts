@@ -1,5 +1,58 @@
+/**
+ * Error Handling Utilities - Centralized error management and classification system
+ * 
+ * **Purpose**: 
+ * Provides a hierarchical error system with structured error information,
+ * operational error classification, and consistent error handling patterns
+ * across all agent components.
+ * 
+ * **Dependencies**:
+ * - Logger: For error tracking and audit trails
+ * - No external dependencies (self-contained error handling)
+ * 
+ * **Key Patterns**:
+ * - Inheritance hierarchy for specialized error types
+ * - Operational vs Programming error classification
+ * - Structured error context for debugging and monitoring
+ * - JSON serialization for error persistence and transmission
+ * 
+ * **Lifecycle**:
+ * 1. Error creation with appropriate error type and context
+ * 2. Automatic logging with severity classification
+ * 3. Stack trace capture for debugging
+ * 4. Error propagation with context preservation
+ * 5. Serialization for storage or transmission
+ * 
+ * **Performance Considerations**:
+ * - Minimal overhead for error construction
+ * - Lazy stack trace generation
+ * - Efficient JSON serialization for error reporting
+ * 
+ * **Error Handling Philosophy**:
+ * - Fail fast for programming errors
+ * - Graceful degradation for operational errors
+ * - Rich context for debugging and monitoring
+ * - User-friendly messages for client errors
+ */
+
 import logger from './logger';
 
+/**
+ * AgentError - Base error class for all agent-related errors
+ * 
+ * **Responsibility**: 
+ * - Provide structured error information with context
+ * - Classify errors as operational vs programming errors
+ * - Enable consistent error handling patterns
+ * - Support error serialization and logging
+ * 
+ * **Error Classification**:
+ * - Operational: Expected errors that should be handled gracefully
+ * - Programming: Unexpected errors indicating bugs or system issues
+ * 
+ * **Context Tracking**: 
+ * Errors include contextual information for debugging and monitoring
+ */
 // Base error class for all agent errors
 export class AgentError extends Error {
   public readonly code: string;
@@ -8,6 +61,22 @@ export class AgentError extends Error {
   public readonly context?: any;
   public readonly timestamp: string;
 
+  /**
+   * Create structured error with classification and context
+   * 
+   * @param message - Human-readable error description
+   * @param code - Machine-readable error code for programmatic handling
+   * @param statusCode - HTTP-style status code (default: 500)
+   * @param isOperational - Whether error is expected/operational (default: true)
+   * @param context - Additional context for debugging and monitoring
+   * 
+   * **Side Effects**:
+   * - Captures stack trace for debugging
+   * - Sets timestamp for audit trails
+   * - Logs error based on severity classification
+   * 
+   * **Error Codes**: Use format COMPONENT_ERROR_TYPE (e.g., SLACK_AUTH_FAILED)
+   */
   constructor(
     message: string,
     code: string,

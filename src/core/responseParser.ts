@@ -24,6 +24,40 @@ export interface SafetyCheck {
   reasons: string[];
 }
 
+/**
+ * Response Parser - Secure parsing and validation of LLM-generated commands
+ * 
+ * **Purpose**: 
+ * Transforms raw LLM responses into validated, executable commands while enforcing
+ * security constraints and safety checks to prevent destructive operations.
+ * 
+ * **Dependencies**:
+ * - ValidationEngine: For command structure validation
+ * - CommandValidationRules: For security and safety rule enforcement
+ * - Logger: For security audit trails and parsing diagnostics
+ * 
+ * **Key Patterns**:
+ * - Defense in depth: Multiple validation layers (syntax, semantics, safety)
+ * - Fail-safe defaults: Invalid commands are rejected rather than executed
+ * - Audit logging: All parsing decisions are logged for security review
+ * 
+ * **Lifecycle**:
+ * 1. Parse raw LLM response text to extract command structure
+ * 2. Validate command syntax and required parameters
+ * 3. Perform safety checks for destructive operations
+ * 4. Apply security filters for system path protection
+ * 5. Return validated command or detailed error information
+ * 
+ * **Performance Considerations**:
+ * - Validation rules are cached at initialization
+ * - Regex patterns are compiled once and reused
+ * - Safety checks use optimized lookup tables
+ * 
+ * **Error Handling**:
+ * - Detailed error messages for debugging LLM prompting issues
+ * - Graceful degradation when validation rules are unavailable
+ * - Security violations are logged and blocked unconditionally
+ */
 export class ResponseParser {
   
   private readonly destructiveActions = [
@@ -43,13 +77,38 @@ export class ResponseParser {
     'C:\\Users\\Default'
   ];
 
+  /**
+   * Initialize ResponseParser with validation rules and security configurations
+   * 
+   * **Side Effects**:
+   * - Loads and caches command validation rules
+   * - Compiles regex patterns for parsing efficiency  
+   * - Initializes security filter lookup tables
+   * - Sets up destructive action detection patterns
+   * 
+   * **Error Handling**: 
+   * Logs warnings but continues if validation rules fail to load
+   */
   constructor() {
     // Initialize validation rules
     CommandValidationRules.initialize();
   }
 
   /**
-   * Validate a structured command for safety and correctness
+   * Validate a structured command for syntax correctness and parameter completeness
+   * 
+   * @param command - Structured command object to validate
+   * @returns ValidationResult containing:
+   *   - isValid: Whether command passes all validation checks
+   *   - errors: Array of validation errors that prevent execution
+   *   - warnings: Array of non-blocking issues or recommendations
+   * 
+   * **Validation Layers**:
+   * - Syntax validation: Required fields and parameter types
+   * - Semantic validation: Parameter value constraints and ranges
+   * - Business rule validation: Domain-specific constraints
+   * 
+   * **Error Handling**: Never throws - all errors captured in result object
    */
   public validateCommand(command: StructuredCommand): ValidationResult {
     // Use centralized validation
@@ -63,7 +122,23 @@ export class ResponseParser {
   }
 
   /**
-   * Perform safety analysis on a command
+   * Perform comprehensive safety analysis on a command before execution
+   * 
+   * @param command - Structured command to analyze for safety risks
+   * @returns SafetyCheck containing:
+   *   - isDestructive: Whether command could cause irreversible changes
+   *   - requiresApproval: Whether human approval is needed before execution  
+   *   - riskLevel: Risk assessment (low/medium/high)
+   *   - reasons: Detailed explanations for risk assessment
+   * 
+   * **Safety Analysis Includes**:
+   * - Destructive action detection (delete, reset, force operations)
+   * - High-risk shell command pattern matching
+   * - System path protection validation
+   * - File permission and ownership checks
+   * 
+   * **Security Policy**: 
+   * All high-risk operations require human approval regardless of automation level
    */
   public performSafetyCheck(command: StructuredCommand): SafetyCheck {
     const reasons: string[] = [];

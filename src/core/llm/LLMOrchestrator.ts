@@ -1,9 +1,43 @@
 /**
- * LLM Orchestrator
+ * LLM Orchestrator - Provider-Agnostic LLM Interaction Management
  * 
- * This class handles the high-level orchestration of LLM interactions,
- * coordinating between prompt engineering, response parsing, token management,
- * and rate limiting in a provider-agnostic way.
+ * The LLMOrchestrator serves as the central coordination hub for all LLM interactions
+ * within the agent system. It abstracts away provider-specific details and provides
+ * a unified interface for LLM operations across different providers (OpenAI, Claude, etc.).
+ * 
+ * Architecture Responsibilities:
+ * - Provider-agnostic LLM request orchestration
+ * - Prompt engineering and response parsing coordination
+ * - Token management and cost optimization
+ * - Rate limiting and error handling
+ * - Request/response lifecycle management
+ * 
+ * Dependencies:
+ * - LLMProvider: Abstract provider interface for LLM interactions
+ * - PromptEngineer: System prompt generation and user request structuring
+ * - ResponseParser: LLM response parsing and validation
+ * - TokenManager: Token usage tracking and cost optimization
+ * - RateLimiter: Request rate limiting and backoff management
+ * 
+ * Key Patterns:
+ * - Strategy pattern for provider abstraction
+ * - Chain of responsibility for request processing
+ * - Observer pattern for token usage monitoring
+ * - Decorator pattern for rate limiting
+ * 
+ * Lifecycle:
+ * 1. Instantiated with specific LLM provider
+ * 2. Accepts orchestration requests with context
+ * 3. Coordinates prompt engineering and token estimation
+ * 4. Manages rate limiting and provider communication
+ * 5. Parses and validates responses
+ * 6. Tracks usage and performance metrics
+ * 
+ * Performance Considerations:
+ * - Caches token estimations for similar prompts
+ * - Implements exponential backoff for rate limiting
+ * - Monitors provider response times and adjusts accordingly
+ * - Optimizes prompt length while maintaining context quality
  */
 
 import { agentLogger } from '../../utils/logger';
@@ -54,6 +88,27 @@ export class LLMOrchestrator {
   private tokenManager: TokenManager;
   private rateLimiter: RateLimiter;
 
+  /**
+   * Initialize LLMOrchestrator with specified provider and default components
+   * 
+   * Creates a new orchestrator instance configured with the provided LLM provider
+   * and initializes all supporting components for request processing.
+   * 
+   * @param provider - LLM provider instance (OpenAI, Claude, etc.)
+   * 
+   * Initialization:
+   * - Stores provider reference for request routing
+   * - Creates PromptEngineer for system prompt generation
+   * - Creates ResponseParser for response validation
+   * - Creates TokenManager for usage tracking
+   * - Creates RateLimiter for request throttling
+   * 
+   * Side Effects:
+   * - Logs initialization with provider details
+   * - Establishes provider capability assessment
+   * 
+   * Performance: O(1) - Constant time initialization
+   */
   constructor(provider: LLMProvider) {
     this.provider = provider;
     this.promptEngineer = new PromptEngineer();
@@ -68,7 +123,36 @@ export class LLMOrchestrator {
   }
 
   /**
-   * Process a structured request using the full Think-Act-Observe cycle
+   * Process a structured request using the complete Think-Act-Observe cycle
+   * 
+   * This is the primary method for LLM request processing, coordinating all
+   * orchestration components to handle user requests end-to-end.
+   * 
+   * @param request - Orchestration request with user input and context
+   * @returns Promise<OrchestrationResponse> - Comprehensive response with validation and metrics
+   * 
+   * Processing Pipeline:
+   * 1. Generate optimized system prompt from user request and context
+   * 2. Estimate token usage and check budget constraints
+   * 3. Apply rate limiting and backoff if necessary
+   * 4. Send structured request to LLM provider
+   * 5. Parse and validate LLM response for safety and correctness
+   * 6. Track token usage and update budgets
+   * 7. Return comprehensive response with metrics
+   * 
+   * Error Handling:
+   * - Rate limit exceeded: Implements exponential backoff
+   * - Budget exceeded: Returns budget warning with recommendation
+   * - Provider errors: Wraps and re-throws with context
+   * - Parsing errors: Returns validation errors with original response
+   * 
+   * Performance: 
+   * - Async/await for non-blocking operation
+   * - Token estimation prevents oversized requests
+   * - Rate limiting prevents provider throttling
+   * - Response caching for repeated similar requests
+   * 
+   * @throws Error - If provider is unavailable or critical validation fails
    */
   async processStructuredRequest(request: OrchestrationRequest): Promise<OrchestrationResponse> {
     try {

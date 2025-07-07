@@ -76,6 +76,181 @@ interface Service {
 **Interface Segregation**: Many specific interfaces > one general interface
 **Dependency Inversion**: Depend on abstractions, not concretions
 
+##### **Single Responsibility Principle (SRP)**
+Each class should have only one reason to change.
+
+```typescript
+// ✅ GOOD: Single responsibility - only handles token management
+export class TokenManager {
+  private usage: TokenUsage;
+  
+  estimateTokens(text: string): number { /* ... */ }
+  recordUsage(usage: TokenUsage): void { /* ... */ }
+  checkBudget(tokens: number): BudgetCheck { /* ... */ }
+}
+
+// ✅ GOOD: Single responsibility - only handles response parsing
+export class ResponseParser {
+  validateCommand(cmd: StructuredCommand): ValidationResult { /* ... */ }
+  performSafetyCheck(cmd: StructuredCommand): SafetyCheck { /* ... */ }
+}
+
+// ❌ BAD: Multiple responsibilities - mixing concerns
+export class LLMManager {
+  estimateTokens(): number { /* token logic */ }
+  validateCommand(): boolean { /* validation logic */ }
+  sendSlackMessage(): void { /* channel logic */ }
+  saveToDatabase(): void { /* persistence logic */ }
+}
+```
+
+##### **Open/Closed Principle (OCP)**
+Classes should be open for extension but closed for modification.
+
+```typescript
+// ✅ GOOD: Extensible through interface implementation
+export abstract class LLMProvider {
+  abstract generateResponse(request: LLMRequest): Promise<LLMResponse>;
+  abstract getCapabilities(): LLMCapabilities;
+}
+
+export class OpenAIProvider extends LLMProvider { /* implementation */ }
+export class AnthropicProvider extends LLMProvider { /* implementation */ }
+
+// ✅ GOOD: Plugin architecture for new actions
+export interface ActionHandler {
+  handle(command: StructuredCommand): Promise<ActionResult>;
+  supports(action: string): boolean;
+}
+
+export class FileActionHandler implements ActionHandler { /* ... */ }
+export class GitActionHandler implements ActionHandler { /* ... */ }
+
+// ❌ BAD: Requires modification for new providers
+export class LLMManager {
+  process(request: string) {
+    if (this.provider === 'openai') { /* ... */ }
+    else if (this.provider === 'anthropic') { /* ... */ }
+    // Adding new provider requires modifying this class
+  }
+}
+```
+
+##### **Liskov Substitution Principle (LSP)**
+Derived classes must be substitutable for their base classes.
+
+```typescript
+// ✅ GOOD: All implementations honor the base contract
+export abstract class MessageChannel {
+  abstract sendMessage(message: ChannelMessage): Promise<ChannelResponse>;
+  
+  // Base behavior that all subclasses must honor
+  protected validateMessage(msg: ChannelMessage): void {
+    if (!msg.content) throw new Error('Message content required');
+  }
+}
+
+export class SlackChannel extends MessageChannel {
+  async sendMessage(message: ChannelMessage): Promise<ChannelResponse> {
+    this.validateMessage(message); // Honors base contract
+    return this.slackClient.postMessage(message);
+  }
+}
+
+export class DiscordChannel extends MessageChannel {
+  async sendMessage(message: ChannelMessage): Promise<ChannelResponse> {
+    this.validateMessage(message); // Honors base contract
+    return this.discordClient.send(message);
+  }
+}
+
+// ❌ BAD: Violates base class contract
+export class EmailChannel extends MessageChannel {
+  async sendMessage(message: ChannelMessage): Promise<ChannelResponse> {
+    // Violates LSP - doesn't validate message like base class expects
+    if (message.content.length > 1000) {
+      throw new Error('Email too long'); // Different validation rules
+    }
+  }
+}
+```
+
+##### **Interface Segregation Principle (ISP)**
+Clients should not be forced to depend on interfaces they don't use.
+
+```typescript
+// ✅ GOOD: Specific, focused interfaces
+export interface TokenEstimator {
+  estimateTokens(text: string): number;
+}
+
+export interface BudgetTracker {
+  checkBudget(tokens: number): BudgetCheck;
+  recordUsage(usage: TokenUsage): void;
+}
+
+export interface TokenOptimizer {
+  analyzeForOptimization(text: string): OptimizationResult;
+}
+
+// Classes implement only what they need
+export class SimpleTokenManager implements TokenEstimator {
+  estimateTokens(text: string): number { /* ... */ }
+}
+
+export class AdvancedTokenManager implements TokenEstimator, BudgetTracker, TokenOptimizer {
+  // Implements all interfaces
+}
+
+// ❌ BAD: Fat interface forces unnecessary dependencies
+export interface TokenManager {
+  estimateTokens(text: string): number;
+  checkBudget(tokens: number): BudgetCheck;
+  recordUsage(usage: TokenUsage): void;
+  analyzeForOptimization(text: string): OptimizationResult;
+  generateReport(): Report; // Not all clients need this
+  configureBudget(budget: Budget): void; // Not all clients need this
+}
+```
+
+##### **Dependency Inversion Principle (DIP)**
+High-level modules should not depend on low-level modules. Both should depend on abstractions.
+
+```typescript
+// ✅ GOOD: Depends on abstraction, not concrete implementation
+export class LLMOrchestrator {
+  constructor(
+    private provider: LLMProvider,        // Abstract interface
+    private tokenManager: TokenEstimator, // Abstract interface
+    private parser: ResponseParser        // Abstract interface
+  ) {}
+  
+  async processRequest(request: string): Promise<ParsedResponse> {
+    const tokens = this.tokenManager.estimateTokens(request);
+    const response = await this.provider.generateResponse({ prompt: request });
+    return this.parser.parseResponse(response.content);
+  }
+}
+
+// ✅ GOOD: Configuration through dependency injection
+const orchestrator = new LLMOrchestrator(
+  new OpenAIProvider(config),
+  new TokenManager(),
+  new ResponseParser()
+);
+
+// ❌ BAD: Directly depends on concrete implementations
+export class LLMOrchestrator {
+  private openai = new OpenAI(process.env.OPENAI_API_KEY); // Tight coupling
+  private tokenManager = new TokenManager();               // Hard to test
+  
+  async processRequest(request: string): Promise<string> {
+    // Directly using concrete OpenAI client - can't substitute
+    return await this.openai.chat.completions.create({ /* ... */ });
+  }
+}
+```
+
 ### **Documentation Standards - REQUIRED** 📚
 
 #### **File-Level Documentation**
@@ -188,7 +363,258 @@ interface ContextManager {
 - Security-sensitive code changes
 - Dependency additions/updates
 
-## Development Guidelines & Gotchas
+### **Code Review Checklist - MANDATORY** ✅
+
+#### **Pre-Review - Developer Self-Check**
+Before submitting code for review, verify:
+
+- [ ] **Builds without errors**: `npm run build` passes
+- [ ] **Tests pass**: `npm test` runs successfully with >80% coverage
+- [ ] **Linting clean**: `npm run lint` reports no violations
+- [ ] **Documentation updated**: All new/changed functionality is documented
+- [ ] **No TODO/FIXME**: All temporary markers addressed or tickets created
+
+#### **Architecture & Design Review**
+
+**DRY Principle Compliance**:
+- [ ] No duplicate logic across files
+- [ ] Common patterns extracted to utilities
+- [ ] Configuration centralized in ConfigManager
+- [ ] Error handling follows consistent patterns
+- [ ] Validation logic reuses ValidationEngine rules
+
+**SOLID Principles Compliance**:
+- [ ] Single Responsibility: Each class has one clear purpose
+- [ ] Open/Closed: New functionality added via extension, not modification
+- [ ] Liskov Substitution: Derived classes honor base class contracts
+- [ ] Interface Segregation: Interfaces are focused and specific
+- [ ] Dependency Inversion: Dependencies injected, not hard-coded
+
+**Separation of Concerns**:
+- [ ] Business logic separated from external integrations
+- [ ] Provider implementations isolated from core logic
+- [ ] Utilities are cross-cutting and reusable
+- [ ] No mixed responsibilities in single modules
+
+#### **Code Quality Review**
+
+**TypeScript Best Practices**:
+- [ ] Strict type checking enabled and satisfied
+- [ ] No `any` types without justification
+- [ ] Interfaces defined for all public contracts
+- [ ] Enums used for fixed value sets
+- [ ] Generic types used appropriately for reusability
+
+**Error Handling**:
+- [ ] All errors extend AgentError base class
+- [ ] Error codes follow COMPONENT_ERROR_TYPE pattern
+- [ ] Contextual information included for debugging
+- [ ] Operational vs programming errors properly classified
+- [ ] Error boundaries prevent cascading failures
+
+**Performance Considerations**:
+- [ ] Expensive operations are cached/memoized
+- [ ] Large objects passed by reference, not copied
+- [ ] Async operations properly await/handle
+- [ ] Memory leaks prevented (event listeners cleaned up)
+- [ ] Database queries optimized and bounded
+
+#### **Security Review**
+
+**Input Validation**:
+- [ ] All external inputs validated before processing
+- [ ] Command parameters sanitized for shell execution
+- [ ] File paths validated to prevent directory traversal
+- [ ] API tokens never logged or exposed in responses
+
+**Safe Execution**:
+- [ ] Destructive operations require explicit approval
+- [ ] Shell commands sanitized and sandboxed
+- [ ] File operations restricted to project boundaries
+- [ ] Network requests limited to allowed domains
+
+#### **Documentation Review**
+
+**Inline Documentation**:
+- [ ] File-level docs explain purpose and dependencies
+- [ ] Class-level docs describe responsibility and lifecycle
+- [ ] Method-level docs specify parameters, return values, side effects
+- [ ] Complex algorithms have explanatory comments
+- [ ] Public APIs fully documented with examples
+
+**External Documentation**:
+- [ ] README updated for new features/dependencies
+- [ ] TODO.md reflects current project state
+- [ ] Development guide updated for new patterns
+- [ ] Architecture diagrams updated if structure changed
+
+#### **Testing Review**
+
+**Test Coverage**:
+- [ ] Unit tests for all new/modified functions
+- [ ] Integration tests for component interactions
+- [ ] Error path testing for exception scenarios
+- [ ] Mock factories used for external dependencies
+- [ ] Test coverage >80% for new code
+
+**Test Quality**:
+- [ ] Tests are deterministic and isolated
+- [ ] Test names clearly describe what's being tested
+- [ ] Assertions are specific and meaningful
+- [ ] Setup/teardown properly manages test state
+- [ ] Performance tests for critical paths
+
+#### **Integration Review**
+
+**Backward Compatibility**:
+- [ ] Public APIs maintain compatibility
+- [ ] Database schema changes are additive
+- [ ] Configuration changes have defaults
+- [ ] Breaking changes documented and versioned
+
+**Deployment Readiness**:
+- [ ] Environment variables documented
+- [ ] Database migrations included if needed
+- [ ] Logging levels appropriate for production
+- [ ] Error monitoring integration functional
+- [ ] Health check endpoints working
+
+### **LLM-Digestible Hierarchical Structure** 🤖📚
+
+The codebase is organized for optimal LLM understanding and context management:
+
+#### **Information Architecture for AI Agents**
+
+**Top-Level Structure (Context Priority)**:
+```
+1. Interface Definitions (contracts and types)
+2. Core Business Logic (domain models and services) 
+3. Provider Implementations (external integrations)
+4. Utility Functions (cross-cutting concerns)
+5. Configuration and Setup (environment and deployment)
+```
+
+**File Organization Patterns**:
+```typescript
+// ✅ GOOD: Clear hierarchical naming for LLM context
+src/
+├── core/                    // HIGH PRIORITY: Core business logic
+│   ├── llm/                // LLM orchestration and providers
+│   │   ├── LLMOrchestrator.ts    // Main coordination logic
+│   │   └── LLMProvider.ts        // Provider interface definition
+│   ├── channels/           // Communication channels
+│   │   └── MessageChannel.ts     // Channel interface definition
+│   └── validation/         // Input validation and safety
+│       ├── ValidationEngine.ts   // Core validation framework
+│       └── CommandValidationRules.ts // Specific validation rules
+├── providers/              // MEDIUM PRIORITY: External integrations
+│   ├── llm/               // LLM provider implementations
+│   │   └── OpenAIProvider.ts     // OpenAI-specific implementation
+│   └── channels/          // Channel provider implementations
+│       └── SlackChannel.ts       // Slack-specific implementation
+├── utils/                  // LOW PRIORITY: Cross-cutting utilities
+│   ├── logger.ts          // Logging infrastructure
+│   ├── errors.ts          // Error handling utilities
+│   └── config.ts          // Configuration management
+└── integrations/          // LOWEST PRIORITY: Legacy/specialized
+    ├── openai.ts          // Direct OpenAI integration
+    └── slack.ts           // Direct Slack integration
+```
+
+**Documentation Hierarchy for LLM Context**:
+```typescript
+/**
+ * Level 1: File Purpose (What this module does)
+ * Level 2: Dependencies (What it needs to work)
+ * Level 3: Key Patterns (How it's structured)
+ * Level 4: Lifecycle (When/how it's used)
+ * Level 5: Performance (Optimization details)
+ * Level 6: Error Handling (Failure scenarios)
+ */
+
+/**
+ * Class-Level Documentation:
+ * - Responsibility (Single clear purpose)
+ * - Collaborators (What it works with)
+ * - Lifecycle (Creation to destruction)
+ * - Threading/Concurrency (If applicable)
+ */
+
+/**
+ * Method-Level Documentation:
+ * - Purpose (What it accomplishes)
+ * - Parameters (Inputs and validation)
+ * - Return Values (Outputs and types)
+ * - Side Effects (State changes)
+ * - Error Conditions (Exception scenarios)
+ * - Performance Notes (Complexity/caching)
+ */
+```
+
+**LLM Context Management Strategy**:
+```typescript
+// Interface definitions first (highest context value)
+export interface LLMProvider {
+  generateResponse(request: LLMRequest): Promise<LLMResponse>;
+  getCapabilities(): LLMCapabilities;
+}
+
+// Implementation follows interface (maintains context)
+export class OpenAIProvider implements LLMProvider {
+  // Implementation details...
+}
+
+// Usage patterns documented for LLM understanding
+/**
+ * Usage Example for LLM Agents:
+ * 
+ * const provider = new OpenAIProvider(config);
+ * const request = { prompt: "Generate code", options: {} };
+ * const response = await provider.generateResponse(request);
+ * 
+ * Common Patterns:
+ * - Always validate inputs before processing
+ * - Use structured responses for parsing
+ * - Implement proper error handling
+ * - Cache expensive operations
+ */
+```
+
+**Naming Conventions for LLM Clarity**:
+```typescript
+// ✅ GOOD: Self-documenting names for LLM understanding
+export class TokenUsageTracker {        // Clear responsibility
+  estimateTokenCost(): number          // Clear action
+  recordActualUsage(): void           // Clear side effect
+  generateUsageReport(): Report       // Clear output
+}
+
+// ✅ GOOD: Interface names indicate contracts
+export interface MessageChannelProvider {  // Clear abstraction
+  sendMessage(): Promise<MessageResult>    // Clear async operation
+  receiveMessage(): Promise<Message>       // Clear async operation
+}
+
+// ❌ BAD: Ambiguous names that confuse LLMs
+export class Manager {                // What does it manage?
+  process(): any                     // What does it process?
+  handle(): void                    // What does it handle?
+}
+```
+
+**Cross-Reference Structure for Context Building**:
+```typescript
+/**
+ * Related Files (for LLM context building):
+ * - Interface: src/core/llm/LLMProvider.ts
+ * - Implementation: src/providers/llm/OpenAIProvider.ts  
+ * - Usage: src/core/llm/LLMOrchestrator.ts
+ * - Tests: tests/openaiProvider.test.ts
+ * - Config: src/utils/config.ts (LLM_PROVIDER_CONFIG)
+ */
+```
+
+## Testing Framework & Best Practices Guide
 
 ### Core Technology Stack
 - **Use TypeScript** for better type safety and development experience

@@ -1,7 +1,37 @@
 /**
- * OpenAI Provider Implementation
+ * OpenAIProvider - OpenAI GPT model integration for LLM requests
  * 
- * Implements the LLMProvider interface for OpenAI's GPT models
+ * **Purpose**: 
+ * Implements the LLMProvider interface to enable agent communication with
+ * OpenAI's GPT models (GPT-4, GPT-4 Turbo, GPT-3.5 Turbo) with proper
+ * error handling, token management, and rate limiting support.
+ * 
+ * **Dependencies**:
+ * - openai: Official OpenAI SDK for API communication
+ * - LLMProvider: Base class providing common provider functionality
+ * - OpenAIError: Specialized error handling for OpenAI-specific issues
+ * 
+ * **Key Patterns**:
+ * - Provider pattern implementation for pluggable LLM backends
+ * - Adapter pattern to bridge OpenAI SDK with agent's LLM interface
+ * - Strategy pattern for model-specific capability and pricing logic
+ * 
+ * **Lifecycle**:
+ * 1. Initialize with API key and model configuration
+ * 2. Validate credentials and model availability
+ * 3. Process requests with token counting and rate limiting
+ * 4. Transform OpenAI responses to agent's standard format
+ * 5. Handle errors with retries and fallback strategies
+ * 
+ * **Performance Considerations**:
+ * - Efficient token estimation for cost optimization
+ * - Request batching for improved throughput
+ * - Connection pooling and keep-alive for reduced latency
+ * 
+ * **Error Handling**:
+ * - Automatic retry with exponential backoff for rate limits
+ * - Detailed error categorization (auth, quota, model, network)
+ * - Graceful degradation for temporary service issues
  */
 
 import OpenAI from 'openai';
@@ -18,6 +48,25 @@ import { OpenAIError } from '../../utils/errors';
 export class OpenAIProvider extends LLMProvider {
   private client: OpenAI;
 
+  /**
+   * Initialize OpenAI provider with configuration and authentication
+   * 
+   * @param config - Provider configuration including:
+   *   - apiKey: OpenAI API key for authentication (required)
+   *   - model: GPT model to use (gpt-4, gpt-4-turbo, gpt-3.5-turbo)
+   *   - maxTokens: Maximum tokens per request
+   *   - temperature: Response randomness (0.0-1.0)
+   * @param logger - Logger instance for request/response tracking
+   * 
+   * @throws OpenAIError if API key is missing or invalid
+   * 
+   * **Side Effects**:
+   * - Creates authenticated OpenAI client instance
+   * - Logs provider initialization with configuration details
+   * - Validates API key format and accessibility
+   * 
+   * **Security**: API key is not logged for security purposes
+   */
   constructor(config: LLMProviderConfig, logger: any) {
     super(config, logger);
     

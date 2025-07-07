@@ -1,7 +1,41 @@
 /**
- * Slack Channel Implementation
+ * SlackChannel - Slack workspace integration for agent communication
  * 
- * Implements the MessageChannel interface for Slack integration
+ * **Purpose**: 
+ * Implements the MessageChannel interface to enable agent interaction through
+ * Slack workspaces using Socket Mode for real-time message handling, thread
+ * management, and user authentication.
+ * 
+ * **Dependencies**:
+ * - @slack/bolt: Official Slack Bolt framework for event handling
+ * - @slack/web-api: Slack Web API client for message operations
+ * - MessageChannel: Base class providing common channel functionality
+ * - SlackError: Specialized error handling for Slack-specific issues
+ * 
+ * **Key Patterns**:
+ * - Event-driven architecture using Slack's real-time APIs
+ * - Socket Mode for secure, firewall-friendly communication
+ * - Thread-based conversations for organized agent interactions
+ * - Mention-based triggering (@agent) for natural invocation
+ * 
+ * **Lifecycle**:
+ * 1. Initialize with bot tokens and workspace credentials
+ * 2. Establish Socket Mode connection for real-time events
+ * 3. Register event handlers for mentions and direct messages
+ * 4. Process incoming messages and route to agent logic
+ * 5. Send responses with proper threading and formatting
+ * 
+ * **Performance Considerations**:
+ * - Connection pooling for Web API calls
+ * - Event deduplication to prevent duplicate processing
+ * - Rate limiting compliance with Slack's API constraints
+ * - Efficient message parsing and formatting
+ * 
+ * **Error Handling**:
+ * - Automatic reconnection for Socket Mode disconnections
+ * - Graceful handling of permission and authentication errors
+ * - User-friendly error messages for configuration issues
+ * - Retry logic for transient API failures
  */
 
 import { App, SocketModeReceiver, LogLevel } from '@slack/bolt';
@@ -28,6 +62,25 @@ export class SlackChannel extends MessageChannel {
   private webClient: WebClient;
   private slackConfig: SlackChannelConfig;
 
+  /**
+   * Initialize Slack channel with workspace authentication and Socket Mode setup
+   * 
+   * @param config - Slack-specific configuration including:
+   *   - botToken: Bot User OAuth Token for API access (required)
+   *   - signingSecret: Signing secret for request verification (required)
+   *   - appToken: App-level token for Socket Mode connection (required)
+   * @param logger - Logger instance for message and event tracking
+   * 
+   * @throws SlackError if any required tokens are missing
+   * 
+   * **Side Effects**:
+   * - Creates Socket Mode receiver for real-time events
+   * - Initializes Slack Bolt app with authentication
+   * - Sets up Web API client for message operations
+   * - Prepares event handlers for mention detection
+   * 
+   * **Security**: All tokens are validated but never logged for security
+   */
   constructor(config: SlackChannelConfig, logger: any) {
     super(config, logger);
     this.slackConfig = config;
