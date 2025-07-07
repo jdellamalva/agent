@@ -69,3 +69,13 @@ workspaces/*/
 # Agent state
 agent-state.json
 *.backup
+
+# Temporary scripts and debug files
+*.temp.*
+debug-*.ts
+debug-*.js
+test-*.ts
+test-*.js
+test-*.mjs
+analyze-*.js
+check-*.js

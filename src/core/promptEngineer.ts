@@ -12,19 +12,47 @@ export interface SystemPromptContext {
   conversationHistory?: string[];
 }
 
+import { BaseCommand } from './commands/CommandSchema';
+
+/**
+ * @deprecated Use BaseCommand from CommandSchema instead
+ * Maintained for backward compatibility during transition
+ */
 export interface StructuredCommand {
-  action: string;
-  parameters: Record<string, any>;
+  id?: string;
+  action: string; // Keeping as string for backward compatibility
+  parameters: Record<string, any>; // Keeping as generic object for backward compatibility  
   reasoning: string;
   confidence: number; // 0-1 scale
   requiresApproval?: boolean;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  dependsOn?: string[];
+  timeout?: number;
+  retryable?: boolean;
+  maxRetries?: number;
+  tags?: string[];
+  metadata?: Record<string, any>;
 }
 
+// Type alias for the new comprehensive command structure
+export type Command = BaseCommand;
+
 export interface ParsedResponse {
-  commands: StructuredCommand[];
+  commands: StructuredCommand[]; // Using backward-compatible interface
   reasoning: string;
   needsMoreInfo?: boolean;
   userMessage?: string; // Human-readable response to user
+}
+
+// Enhanced parsed response with new command schema
+export interface EnhancedParsedResponse {
+  commands: BaseCommand[]; // Using new comprehensive schema
+  reasoning: string;
+  needsMoreInfo?: boolean;
+  userMessage?: string;
+  batchId?: string; // For command batching support
+  estimatedDuration?: number; // Total estimated execution time
+  requiredApprovals?: string[]; // List of command IDs requiring approval
 }
 
 /**

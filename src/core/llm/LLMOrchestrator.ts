@@ -41,7 +41,7 @@
  */
 
 import { agentLogger } from '../../utils/logger';
-import { LLMProvider, LLMRequest, LLMResponse, LLMTokenUsage } from './LLMProvider';
+import { LLMProvider, LLMRequest, LLMResponse } from './LLMProvider';
 import { PromptEngineer, SystemPromptContext, ParsedResponse } from '../promptEngineer';
 import { ResponseParser } from '../responseParser';
 import { TokenManager, TokenUsage as ManagerTokenUsage } from '../tokenManager';

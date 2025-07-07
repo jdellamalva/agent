@@ -404,6 +404,9 @@ Before submitting code for review, verify:
 - [ ] Interfaces defined for all public contracts
 - [ ] Enums used for fixed value sets
 - [ ] Generic types used appropriately for reusability
+- [ ] **No unused imports** - All imports must be actively used in the file
+- [ ] **Import organization** - External packages first, then internal modules
+- [ ] **Dependency hygiene** - Only necessary packages in production dependencies
 
 **Error Handling**:
 - [ ] All errors extend AgentError base class
@@ -886,11 +889,42 @@ it('should clean up resources on destroy', () => {
 ✅ **ALL tests must pass** - No exceptions for any commits to main branch
 ✅ **TypeScript strict mode compliance** - No `any` types, proper interfaces
 ✅ **ESLint clean** - Zero linting errors or warnings
+✅ **No unused imports** - All imports must be actively used in the file
+✅ **Dependency hygiene** - Only necessary packages in production dependencies
 ✅ **Test coverage ≥ 90%** for all new core components (excluding integrations)
 ✅ **Documentation updated** - README, development guide, inline comments
 ✅ **Error handling** - Proper error boundaries and graceful degradation
 ✅ **Logging implemented** - Appropriate log levels for debugging and monitoring
 ✅ **Security validated** - No hardcoded secrets, input validation present
+
+### Import & Dependency Management
+✅ **No unused imports** - Remove all imports that aren't actively used in the file
+✅ **Import organization** - External packages first, then internal modules, alphabetically sorted
+✅ **Production dependencies** - Only runtime-required packages in `dependencies`
+✅ **Development dependencies** - Testing, building, linting tools in `devDependencies`
+✅ **Type definitions** - All `@types/*` packages in `devDependencies`
+✅ **Package audit** - Regularly review dependencies for unused packages
+
+**Import Standards**:
+```typescript
+// ✅ GOOD: Organized imports
+import OpenAI from 'openai';           // External packages first
+import { App } from '@slack/bolt';     // Alphabetically sorted
+import winston from 'winston';
+
+import { LLMProvider } from './LLMProvider';    // Internal modules after
+import { agentLogger } from '../utils/logger';  // Relative imports
+
+// ❌ BAD: Unused imports, mixed organization
+import { SomeUnusedType } from './types';     // Unused
+import { agentLogger } from '../utils/logger'; // Mixed with external
+import winston from 'winston';
+```
+
+**Dependency Hygiene**:
+- **Production**: Only packages needed at runtime (`openai`, `@slack/bolt`, `winston`, etc.)
+- **Development**: Building, testing, linting tools (`typescript`, `jest`, `@types/*`)
+- **Regular cleanup**: Remove packages that are no longer used in the codebase
 
 ### Testing Requirements
 ✅ **Unit tests** - All functions and classes have comprehensive test coverage
@@ -925,6 +959,27 @@ it('should clean up resources on destroy', () => {
 ✅ **API documentation** - All public methods have JSDoc comments
 ✅ **Architecture decisions** - Major changes documented in this guide
 ✅ **Usage examples** - Examples provided for complex components
+
+### Project Organization
+✅ **Clean project root** - No temporary files, debug scripts, or build artifacts
+✅ **Script management** - Utility scripts in `scripts/` directory with descriptive names
+✅ **Temporary files** - Use `.temp.` in filename, automatically gitignored
+✅ **Configuration files** - Only active configs at project root (single `jest.config.json`)
+✅ **Documentation hierarchy** - README → Development Guide → Inline Comments
+
+**Script Organization**:
+```bash
+scripts/
+├── README.md                    # Documentation for scripts directory
+├── check-unused-imports.js      # Permanent utility scripts
+└── analyze-deps.temp.js         # Temporary scripts (auto-gitignored)
+```
+
+**Gitignore Patterns**:
+- `*.temp.*` - Temporary files of any type
+- `debug-*.ts`, `debug-*.js` - Debug scripts  
+- `test-*.ts`, `test-*.js`, `test-*.mjs` - Standalone test files
+- `analyze-*.js`, `check-*.js` - Analysis scripts
 
 ### Deployment Readiness
 ✅ **Environment variables** - All config externalized, no hardcoded values
