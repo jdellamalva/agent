@@ -231,9 +231,11 @@ export class ErrorHandler {
 
       try {
         // This would need to be implemented by the calling code
-        // For now, we just log the retry attempt
+        // For now, we just log the retry attempt and always fail
         logger.info(`Retry attempt ${attempt} for error ${error.code}`);
-        return null; // Placeholder
+        
+        // Placeholder: always fail since we don't have actual retry logic
+        throw new Error('Retry failed - placeholder implementation');
       } catch (retryError) {
         logger.warn(`Retry attempt ${attempt} failed`, {
           originalError: error.code,

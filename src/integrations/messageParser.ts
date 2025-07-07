@@ -1,4 +1,4 @@
-import { agentLogger } from '@utils/logger';
+import { agentLogger } from '../utils/logger';
 
 const logger = agentLogger.child({ component: 'message-parser' });
 

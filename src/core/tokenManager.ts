@@ -2,7 +2,7 @@
  * Token Management System for LLM Agent
  * 
  * This module handles token counting, cost optimization, and budget management
- * for OpenAI API calls.
+ * for LLM API calls.
  */
 
 import { agentLogger } from '../utils/logger';

@@ -1,8 +1,8 @@
 import { App, SocketModeReceiver } from '@slack/bolt';
 import { WebClient } from '@slack/web-api';
-import { agentLogger } from '@utils/logger';
-import { SlackError } from '@utils/errors';
-import defaultConfig from '@utils/config';
+import { agentLogger } from '../utils/logger';
+import { SlackError } from '../utils/errors';
+import defaultConfig from '../utils/config';
 import { OpenAIClient } from './openai';
 
 const logger = agentLogger.child({ component: 'slack' });
