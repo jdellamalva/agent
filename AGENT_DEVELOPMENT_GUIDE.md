@@ -1,4 +1,192 @@
-# LLM Agent Development Notes
+# LLM Agent Development Guide
+
+## 🎯 CORE ARCHITECTURAL PRINCIPLES
+
+### **The Three Pillars of Maintainable Code**
+
+#### **1. DRY (Don't Repeat Yourself) - ENFORCED** 🚫🔄
+**Principle**: Every piece of knowledge must have a single, unambiguous, authoritative representation.
+
+**Implementation Patterns**:
+```typescript
+// ✅ GOOD: Centralized validation
+export class ValidationEngine {
+  static createCommonRules() {
+    return {
+      required: <T>(field: string) => ({ /* reusable logic */ }),
+      stringType: (field: string) => ({ /* reusable logic */ })
+    };
+  }
+}
+
+// ❌ BAD: Duplicate validation in multiple files
+class ComponentA { validateRequired(val) { /* duplicate logic */ } }
+class ComponentB { validateRequired(val) { /* duplicate logic */ } }
+```
+
+**Review Checklist**:
+- [ ] No duplicate validation logic
+- [ ] Configuration accessed through single source
+- [ ] Error handling follows consistent patterns
+- [ ] Utility functions are reusable across components
+
+#### **2. Separation of Concerns - ENFORCED** 🎯
+**Principle**: Each module should have one reason to change.
+
+**Layer Architecture**:
+```typescript
+// ✅ GOOD: Clear layer separation
+src/core/          // Business logic (no external dependencies)
+src/integrations/  // External API handling 
+src/providers/     // Implementation details
+src/utils/         // Cross-cutting concerns (logging, errors)
+
+// ❌ BAD: Mixed concerns
+class UserService {
+  saveUser() { /* business logic */ }
+  sendEmail() { /* external service */ }
+  logActivity() { /* cross-cutting */ }
+}
+```
+
+**Interface Design**:
+```typescript
+// ✅ GOOD: Single responsibility interfaces
+interface LLMProvider {
+  generateResponse(prompt: string): Promise<string>;
+}
+
+interface MessageChannel {
+  sendMessage(message: string): Promise<void>;
+}
+
+// ❌ BAD: Mixed responsibilities
+interface Service {
+  generateResponse(): Promise<string>;
+  sendMessage(): Promise<void>;
+  saveToDatabase(): Promise<void>;
+}
+```
+
+#### **3. SOLID Principles - ENFORCED** 🏗️
+
+**Single Responsibility**: One class, one job
+**Open/Closed**: Open for extension, closed for modification
+**Liskov Substitution**: Subtypes must be substitutable for base types
+**Interface Segregation**: Many specific interfaces > one general interface
+**Dependency Inversion**: Depend on abstractions, not concretions
+
+### **Documentation Standards - REQUIRED** 📚
+
+#### **File-Level Documentation**
+```typescript
+/**
+ * Response Parser for LLM Agent
+ * 
+ * Handles parsing and validating LLM responses to ensure they can be 
+ * safely executed by the action system.
+ * 
+ * Dependencies: ValidationEngine, CommandValidationRules
+ * Exports: ResponseParser, ValidationResult, SafetyCheck
+ * 
+ * Key Patterns:
+ * - Centralized validation through ValidationEngine
+ * - Security-first approach to command validation
+ * - Structured error reporting with context
+ */
+```
+
+#### **Class-Level Documentation**
+```typescript
+/**
+ * Manages token usage tracking and optimization for LLM interactions
+ * 
+ * Responsibilities:
+ * - Track token consumption across all LLM providers
+ * - Estimate costs before API calls
+ * - Provide optimization recommendations
+ * - Cache expensive token estimations
+ * 
+ * Collaborates with: LLMProvider, ConfigManager, CacheManager
+ * Lifecycle: Singleton instance, initialized on first use
+ */
+export class TokenManager {
+```
+
+#### **Method-Level Documentation**
+```typescript
+/**
+ * Analyzes prompt for potential optimizations
+ * 
+ * @param prompt - The input text to analyze
+ * @param options - Analysis configuration options
+ * @returns Analysis result with recommendations and estimated savings
+ * 
+ * Side effects: Updates internal optimization metrics
+ * Performance: O(n) where n is prompt length, cached for 5 minutes
+ */
+public analyzeForOptimization(
+  prompt: string, 
+  options: AnalysisOptions = {}
+): OptimizationAnalysis {
+```
+
+### **Governor Agent Architecture** 🤖👨‍⚖️
+
+#### **Automated Code Review System**
+```typescript
+interface GovernorAgent {
+  reviewCode(changes: CodeChange[]): Promise<ReviewResult>;
+  enforceArchitecture(codebase: Codebase): Promise<ComplianceReport>;
+  detectTechnicalDebt(files: SourceFile[]): Promise<DebtAnalysis>;
+  suggestRefactoring(component: Component): Promise<RefactoringSuggestion[]>;
+}
+```
+
+#### **Review Criteria**
+- **DRY Violations**: Duplicate logic detection
+- **SOLID Compliance**: Architecture pattern verification  
+- **Security Issues**: Vulnerability and safety scanning
+- **Performance Regressions**: Benchmark comparison
+- **Documentation Coverage**: Inline docs completeness
+
+### **Context Window Management Strategy** 🧠
+
+#### **Hierarchical Context Loading**
+```typescript
+// Load context in priority order
+1. Current file being edited
+2. Direct dependencies (imports)
+3. Interface definitions  
+4. Related test files
+5. Configuration files
+6. Documentation
+```
+
+#### **Smart Summarization**
+```typescript
+interface ContextManager {
+  summarizeFile(file: SourceFile): FileSummary;
+  extractInterfaces(files: SourceFile[]): InterfaceDefinition[];
+  identifyKeyPatterns(codebase: Codebase): ArchitecturalPattern[];
+  compressContext(context: Context, targetSize: number): CompressedContext;
+}
+```
+
+### **Safety Guardrails - MANDATORY** 🛡️
+
+#### **Prohibited Patterns**
+- Direct database manipulation without validation
+- File system operations outside project sandbox
+- Network requests to untrusted domains
+- Execution of user-provided code without sanitization
+- Logging of sensitive information (API keys, passwords)
+
+#### **Required Approvals**
+- Destructive operations (file deletion, database drops)
+- External API integrations
+- Security-sensitive code changes
+- Dependency additions/updates
 
 ## Development Guidelines & Gotchas
 
