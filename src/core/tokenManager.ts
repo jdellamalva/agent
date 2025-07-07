@@ -2,11 +2,11 @@
  * Token Management System for LLM Agent
  * 
  * This module handles token counting, cost optimization, and budget management
- * for LLM API calls.
+ * for LLM API calls with performance optimizations and caching.
  */
 
 import { agentLogger } from '../utils/logger';
-import defaultConfig from '../utils/config';
+import { globalCaches, memoize } from './performance/CacheManager';
 
 const logger = agentLogger.child({ component: 'tokenManager' });
 
@@ -35,26 +35,54 @@ export class TokenManager {
   private usage: { [date: string]: TokenUsage } = {};
   private budget: TokenBudget;
 
-  constructor() {
+  // Memoized token estimation function
+  private estimateTokensMemoized = memoize(
+    this.estimateTokensRaw.bind(this),
+    { 
+      cache: globalCaches.tokenEstimation,
+      keyGenerator: (text: string) => `tokens:${text.length}:${text.slice(0, 100)}`
+    }
+  );
+
+  constructor(budget?: Partial<TokenBudget>) {
     this.budget = {
       dailyLimit: 100000, // tokens per day
       monthlyLimit: 2000000, // tokens per month
       currentDailyUsage: 0,
       currentMonthlyUsage: 0,
-      warningThreshold: 80 // warn at 80% of budget
+      warningThreshold: 80, // warn at 80% of budget
+      ...budget
     };
 
     this.loadUsageFromStorage();
   }
 
   /**
-   * Estimate tokens for a given text using a simple approximation
-   * More accurate would be to use tiktoken library, but this is a good start
+   * Estimate tokens for a given text using a simple approximation (with caching)
    */
   public estimateTokens(text: string): number {
-    // Rough approximation: 1 token ≈ 4 characters for English text
-    // This is conservative and works reasonably well for planning
-    return Math.ceil(text.length / 4);
+    return this.estimateTokensMemoized(text);
+  }
+
+  /**
+   * Raw token estimation without caching
+   */
+  private estimateTokensRaw(text: string): number {
+    // More sophisticated approximation based on text characteristics
+    const words = text.split(/\s+/).length;
+    const chars = text.length;
+    
+    // Different token ratios for different content types
+    if (text.includes('```') || text.includes('function') || text.includes('class')) {
+      // Code content - typically more tokens per character
+      return Math.ceil(chars / 3);
+    } else if (text.includes('{') && text.includes('}') && text.includes('"')) {
+      // JSON content
+      return Math.ceil(chars / 3.5);
+    } else {
+      // Regular text - 1 token ≈ 4 characters for English
+      return Math.ceil(chars / 4);
+    }
   }
 
   /**

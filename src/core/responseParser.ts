@@ -7,6 +7,7 @@
 
 import { agentLogger } from '../utils/logger';
 import { StructuredCommand, ParsedResponse } from './promptEngineer';
+import { CommandValidationRules } from './validation/CommandValidationRules';
 
 const logger = agentLogger.child({ component: 'responseParser' });
 
@@ -35,55 +36,29 @@ export class ResponseParser {
     'project_delete'
   ];
 
-  private readonly highRiskPatterns = [
-    /rm\s+-rf/i,
-    /sudo/i,
-    /passwd/i,
-    /chmod\s+777/i,
-    /--force/i,
-    /DROP\s+TABLE/i,
-    /DELETE\s+FROM/i
+  private readonly systemPaths = [
+    '/bin', '/usr/bin', '/sbin', '/usr/sbin',
+    '/etc', '/boot', '/sys', '/proc',
+    'C:\\Windows', 'C:\\Program Files',
+    'C:\\Users\\Default'
   ];
+
+  constructor() {
+    // Initialize validation rules
+    CommandValidationRules.initialize();
+  }
 
   /**
    * Validate a structured command for safety and correctness
    */
   public validateCommand(command: StructuredCommand): ValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Validate basic structure
-    if (!command.action || typeof command.action !== 'string') {
-      errors.push('Command must have a valid action string');
-    }
-
-    if (!command.parameters || typeof command.parameters !== 'object') {
-      errors.push('Command must have parameters object');
-    }
-
-    if (!command.reasoning || typeof command.reasoning !== 'string') {
-      errors.push('Command must include reasoning');
-    }
-
-    if (typeof command.confidence !== 'number' || command.confidence < 0 || command.confidence > 1) {
-      errors.push('Command confidence must be a number between 0 and 1');
-    }
-
-    // Validate action-specific parameters
-    this.validateActionParameters(command, errors, warnings);
-
-    // Check for security issues
-    this.validateSecurity(command, errors, warnings);
-
-    // Low confidence warning
-    if (command.confidence < 0.7) {
-      warnings.push(`Low confidence score (${command.confidence}). Consider requesting clarification.`);
-    }
-
+    // Use centralized validation
+    const validation = CommandValidationRules.validateCommand(command);
+    
     return {
-      isValid: errors.length === 0,
-      errors,
-      warnings
+      isValid: validation.isValid,
+      errors: validation.errors,
+      warnings: validation.warnings
     };
   }
 
@@ -104,14 +79,29 @@ export class ResponseParser {
       reasons.push(`Action '${command.action}' is potentially destructive`);
     }
 
-    // Check parameters for high-risk patterns
-    const paramString = JSON.stringify(command.parameters);
-    for (const pattern of this.highRiskPatterns) {
-      if (pattern.test(paramString)) {
-        isDestructive = true;
-        requiresApproval = true;
-        riskLevel = 'high';
-        reasons.push(`High-risk pattern detected in parameters: ${pattern.source}`);
+    // Check for high-risk patterns in shell commands
+    if (command.action === 'shell_exec' && command.parameters.command) {
+      const cmd = command.parameters.command;
+      if (typeof cmd === 'string') {
+        const highRiskPatterns = [
+          /rm\s+-rf/i,
+          /sudo/i,
+          /passwd/i,
+          /chmod\s+777/i,
+          /--force/i,
+          /DROP\s+TABLE/i,
+          /DELETE\s+FROM/i
+        ];
+        
+        for (const pattern of highRiskPatterns) {
+          if (pattern.test(cmd)) {
+            isDestructive = true;
+            requiresApproval = true;
+            riskLevel = 'high';
+            reasons.push(`High-risk pattern detected: ${pattern.source}`);
+            break;
+          }
+        }
       }
     }
 
@@ -149,95 +139,12 @@ export class ResponseParser {
   }
 
   /**
-   * Validate action-specific parameters
-   */
-  private validateActionParameters(command: StructuredCommand, errors: string[], warnings: string[]): void {
-    const { action, parameters } = command;
-
-    switch (action) {
-      case 'file_read':
-      case 'file_write':
-      case 'file_delete':
-        if (!parameters.path || typeof parameters.path !== 'string') {
-          errors.push(`${action} requires a valid 'path' parameter`);
-        }
-        break;
-
-      case 'dir_create':
-      case 'dir_list':
-        if (!parameters.path || typeof parameters.path !== 'string') {
-          errors.push(`${action} requires a valid 'path' parameter`);
-        }
-        break;
-
-      case 'git_clone':
-        if (!parameters.url || typeof parameters.url !== 'string') {
-          errors.push('git_clone requires a valid repository URL');
-        }
-        if (!parameters.destination || typeof parameters.destination !== 'string') {
-          errors.push('git_clone requires a destination path');
-        }
-        break;
-
-      case 'npm_install':
-        if (parameters.packages && !Array.isArray(parameters.packages)) {
-          errors.push('npm_install packages parameter must be an array');
-        }
-        break;
-
-      case 'shell_exec':
-        if (!parameters.command || typeof parameters.command !== 'string') {
-          errors.push('shell_exec requires a command string');
-        }
-        warnings.push('Shell execution can be dangerous - ensure command is safe');
-        break;
-
-      default:
-        warnings.push(`Unknown action: ${action}. Ensure it's supported by the action system.`);
-    }
-  }
-
-  /**
-   * Validate security aspects of the command
-   */
-  private validateSecurity(command: StructuredCommand, errors: string[], warnings: string[]): void {
-    // Check for obvious security issues
-    const paramString = JSON.stringify(command.parameters).toLowerCase();
-    
-    if (paramString.includes('password') || paramString.includes('secret') || paramString.includes('token')) {
-      warnings.push('Parameters may contain sensitive information');
-    }
-
-    if (paramString.includes('http://') && !paramString.includes('localhost')) {
-      warnings.push('Non-HTTPS URLs detected - prefer HTTPS for security');
-    }
-
-    // Path traversal check
-    if (paramString.includes('../') || paramString.includes('..\\')) {
-      errors.push('Path traversal detected in parameters');
-    }
-  }
-
-  /**
    * Check if a path is a system path that requires special handling
    */
   private isSystemPath(path: string): boolean {
-    const systemPaths = [
-      '/etc',
-      '/usr/bin',
-      '/usr/sbin', 
-      '/bin',
-      '/sbin',
-      '/root',
-      '/var',
-      '/sys',
-      '/proc',
-      'C:\\Windows',
-      'C:\\Program Files',
-      'C:\\System32'
-    ];
-
-    return systemPaths.some(systemPath => path.startsWith(systemPath));
+    return this.systemPaths.some(sysPath => 
+      path.toLowerCase().startsWith(sysPath.toLowerCase())
+    );
   }
 
   /**
