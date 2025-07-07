@@ -27,6 +27,7 @@ Each user deploys their own agent instance with:
 ✅ **Phase 1 (5/5)**: Core Infrastructure Setup - **COMPLETE**
 ✅ **Phase 2 (5/5)**: Slack Integration - **COMPLETE & TESTED**
 ✅ **Phase 3 (5/5)**: OpenAI Integration - **COMPLETE & TESTED**
+⭕ **Phase 3.5 (0/7)**: Architectural Decoupling - **NOT STARTED**
 ⭕ **Phase 4 (0/9)**: Action System (Base Agent) - **NOT STARTED**
 ⭕ **Phase 5 (0/8)**: Multi-Codebase Management (Base Agent) - **NOT STARTED**
 ⭕ **Phase 6 (0/9)**: Advanced Operations (Base Agent) - **NOT STARTED**
@@ -36,8 +37,12 @@ Each user deploys their own agent instance with:
 ⭕ **Phase 10 (0/8)**: Customization Layer Architecture - **NOT STARTED**
 ⭕ **Phase 11 (0/9)**: User Infrastructure & Deployment - **NOT STARTED**
 ⭕ **Phase 12 (0/7)**: Dynamic Data Services (Customization) - **NOT STARTED**
-⭕ **Phase 13 (0/8)**: Advanced Customization Features - **NOT STARTED**
-⭕ **Phase 14 (0/5)**: Documentation & Maintenance - **NOT STARTED**
+⭕ **Phase 13 (0/9)**: Advanced Customization Features - **NOT STARTED**
+⭕ **Phase 14 (0/6)**: Documentation & Maintenance - **NOT STARTED**
+⭕ **Phase 15 (0/10)**: Evolutionary Agent Swarm Architecture - **NOT STARTED**
+⭕ **Phase 16 (0/12)**: Evolutionary Selection System - **NOT STARTED**
+⭕ **Phase 17 (0/10)**: Cross-User Evolution Network - **NOT STARTED**
+⭕ **Phase 18 (0/6)**: Evolutionary System Documentation & Optimization - **NOT STARTED**
 
 ---
 
@@ -67,6 +72,19 @@ Each user deploys their own agent instance with:
 - [x] **Rate Limiting**: Handle API rate limits and implement backoff strategies ✅ IMPLEMENTED
 
 **✅ Phase 3 Status**: COMPLETE - All advanced OpenAI features implemented, integrated with Slack, and tested!
+
+## Phase 3.5: Architectural Decoupling
+*Critical refactoring to enable pluggable LLMs and I/O channels before building the action system*
+
+- [ ] **LLM Provider Abstraction**: Create `LLMProvider` interface to decouple from OpenAI-specific implementation
+- [ ] **Message Channel Abstraction**: Create `MessageChannel` interface to decouple from Slack-specific implementation
+- [ ] **Extract Generic LLM Logic**: Move orchestration logic from `OpenAIClient` to provider-agnostic `LLMOrchestrator`
+- [ ] **Refactor Slack Integration**: Convert `SlackClient` to implement `MessageChannel` interface
+- [ ] **Create Provider Registry**: Implement dynamic provider registration and discovery system
+- [ ] **Configuration Refactoring**: Make configuration system provider-agnostic with dynamic loading
+- [ ] **Update Core Components**: Ensure `PromptEngineer`, `ResponseParser`, and `TokenManager` are LLM-agnostic
+
+**🎯 Phase 3.5 Status**: ARCHITECTURAL FOUNDATION - Essential for scalable multi-provider support!
 
 ---
 
@@ -124,7 +142,7 @@ Each user deploys their own agent instance with:
 - [ ] **Unit Tests**: Test individual components (actions, parsers, etc.)
 - [ ] **Integration Tests**: Test full cycle workflows
 - [ ] **Multi-Project Tests**: Test operations across different project types
-- [ ] **Mock Services**: Create mocks for Slack, OpenAI, and Git for testing
+- [ ] **Mock Services**: Create mocks for LLM providers and message channels for testing
 - [ ] **Safety Testing**: Test self-modification and cross-project safety mechanisms
 - [ ] **Performance Testing**: Ensure acceptable response times across operations
 - [ ] **Sandbox Testing**: Test dangerous operations in isolated environments
@@ -181,31 +199,76 @@ Each user deploys their own agent instance with:
 - [ ] **Advanced Self-Modification**: Safe customization-layer code generation
 - [ ] **Multi-Agent Coordination**: Coordination between multiple user agents
 - [ ] **Advanced Analytics**: User-specific usage and performance analytics
+- [ ] **Multi-Provider Support**: Enable users to add custom LLM and channel providers
+
+---
+
+# EVOLUTIONARY SWARM DEVELOPMENT (Phases 15-18)
+*Implementing naturally selective swarm intelligence for adaptive agent improvement*
+
+## Phase 15: Evolutionary Agent Swarm Architecture
+*Implementing naturally selective swarm intelligence for adaptive agent improvement*
+
+- [ ] **Swarm Management System**: Architecture for spawning and managing multiple parallel agents
+- [ ] **Minimum Viable Agent Design**: Stripped-down agent variants optimized for specific sub-tasks
+- [ ] **Memory Engram Framework**: Free-form customizable memory units with cost functions based on size
+- [ ] **Engram Size Economics**: Cost-benefit analysis system with hard maximum limits (bioavailability constraints)
+- [ ] **Task Decomposition Engine**: Automatically break complex tasks into parallelizable sub-tasks
+- [ ] **Dynamic Scaling Logic**: Adjust swarm size based on task complexity and cost constraints
+- [ ] **Agent Lifecycle Management**: Spawn, monitor, and terminate agents based on performance
+- [ ] **Resource Allocation**: Distribute computational resources across swarm members
+- [ ] **Inter-Agent Communication**: Coordination protocols for swarm collaboration
+- [ ] **Speciation Framework**: Tag-based system for agent specialization and niche identification
+
+## Phase 16: Evolutionary Selection System
+*Implementing natural selection mechanisms for agent improvement*
+
+- [ ] **Fitness Function Framework**: Configurable reward functions for performance evaluation
+- [ ] **Multi-Dimensional Performance Metrics**: Track processing time, space, power, cost, and quality metrics
+- [ ] **User-Configurable Fitness Preferences**: Allow users to weight different performance factors
+- [ ] **Cost-Benefit Analysis Engine**: Comprehensive cost calculation including external factors (ESG impact, etc.)
+- [ ] **Base Agent Cost Discovery**: System for the base agent to identify and quantify various cost factors
+- [ ] **Selection Pressure Algorithms**: Implement various selection strategies (tournament, roulette, etc.)
+- [ ] **Engram Mutation Engine**: Random mutation system for memory engram evolution
+- [ ] **Speciation-Based Reproduction**: "Sexual reproduction" only between compatible agents based on tag similarity
+- [ ] **Reproductive Viability Testing**: Measure offspring viability in producing valuable responses
+- [ ] **Population Management**: Maintain optimal population sizes and diversity within species
+- [ ] **Extinction Prevention**: Mechanisms to prevent loss of beneficial genetic material
+- [ ] **Fitness Landscape Analysis**: Tools to understand and visualize evolutionary progress
+
+## Phase 17: Cross-User Evolution Network
+*Enabling beneficial evolution across the entire userbase while maintaining privacy*
+
+- [ ] **Opt-In Data Sharing System**: User consent mechanism for contributing to "the mothership"
+- [ ] **Encrypted Engram Processing**: Secure processing of engrams in blackboxed production environment
+- [ ] **Development vs Production Security**: Exposed mechanisms for dev, encrypted for production
+- [ ] **Privacy-Preserving Aggregation**: Combine user data without exposing individual information
+- [ ] **Global Fitness Tracking**: Aggregate performance metrics across user ecosystems
+- [ ] **Encrypted Engram Marketplace**: System for discovering and adopting successful engrams securely
+- [ ] **Evolutionary Pressure Coordination**: Balance local vs. global selection pressures
+- [ ] **Cross-Species Genetic Flow**: Manage beneficial mutations across different agent specializations
+- [ ] **Biosphere Analytics**: Monitor and analyze evolution trends across the entire network
+- [ ] **Ethical Evolution Constraints**: Safeguards against harmful or malicious evolutionary paths
 
 ## Phase 14: Documentation & Maintenance
 - [ ] **API Documentation**: Complete documentation for both base agent and customization APIs
 - [ ] **User Guide**: Guide for setting up and using customized agent instances
 - [ ] **Developer Guide**: Documentation for creating customizations and extensions
+- [ ] **Provider Development Guide**: Instructions for creating custom LLM and channel providers
 - [ ] **Deployment Guide**: Instructions for deploying in various environments
 - [ ] **Maintenance Procedures**: Procedures for maintaining both base and customization layers
 
+## Phase 18: Evolutionary System Documentation & Optimization
+*Final documentation and optimization of the evolutionary swarm system*
+
+- [ ] **Evolutionary Algorithm Documentation**: Complete documentation of selection, mutation, and reproduction systems
+- [ ] **Swarm Operations Guide**: Instructions for configuring and managing agent swarms
+- [ ] **Fitness Function Library**: Documentation and examples of various fitness functions
+- [ ] **Evolution Analytics Dashboard**: Tools for monitoring and analyzing evolutionary progress
+- [ ] **Performance Optimization**: Final tuning of evolutionary algorithms for efficiency
+- [ ] **Safety Validation**: Comprehensive testing of evolutionary safeguards and constraints
+
 ---
 
-## Architecture Notes
-### Base Agent Principles
-- **Stability First**: Base agent code is locked after Phase 9 completion
-- **Comprehensive Testing**: Extensive test coverage before finalization
-- **Clean APIs**: Well-defined interfaces for customization layer integration
-- **Security by Design**: Built-in security and isolation mechanisms
-
-### Customization Layer Principles
-- **User Ownership**: Users provide their own API keys, infrastructure, and data storage
-- **Safe Extensions**: Customizations cannot break base agent functionality
-- **Independent Evolution**: Each user's agent can learn and adapt separately
-- **Dynamic Data**: Real-time data collection via web scraping when APIs unavailable
-
-### Technical Architecture
-- **Firebase for Persistence**: User-owned Firebase projects for memory and configuration
-- **Puppeteer for Data**: Web scraping for pricing, rate limits, and other dynamic data
-- **Plugin System**: Hot-loadable extensions that extend base functionality
-- **Isolation**: Strong boundaries between base agent and customization code
+*For architectural details, design principles, and technical specifications, see [AGENT_README.md](AGENT_README.md)*
+*For open questions and design decisions, see [QUESTIONS.md](QUESTIONS.md)*
