@@ -35,7 +35,8 @@
  * - User-friendly messages for client errors
  */
 
-import logger from './logger';
+import { logger } from './logger';
+import { NETWORK } from '../config/constants';
 
 /**
  * AgentError - Base error class for all agent-related errors
@@ -66,7 +67,7 @@ export class AgentError extends Error {
    * 
    * @param message - Human-readable error description
    * @param code - Machine-readable error code for programmatic handling
-   * @param statusCode - HTTP-style status code (default: 500)
+   * @param statusCode - HTTP-style status code (default: NETWORK.HTTP_STATUS_SERVER_ERROR)
    * @param isOperational - Whether error is expected/operational (default: true)
    * @param context - Additional context for debugging and monitoring
    * 
@@ -80,7 +81,7 @@ export class AgentError extends Error {
   constructor(
     message: string,
     code: string,
-    statusCode: number = 500,
+    statusCode: number = NETWORK.HTTP_STATUS_SERVER_ERROR,
     isOperational: boolean = true,
     context?: any
   ) {
@@ -111,70 +112,95 @@ export class AgentError extends Error {
 }
 
 // Specific error types for different components
+
+/**
+ * Slack integration specific error handling
+ */
 export class SlackError extends AgentError {
   constructor(message: string, code: string, context?: any) {
-    super(message, `SLACK_${code}`, 400, true, context);
+    super(message, `SLACK_${code}`, NETWORK.HTTP_STATUS_BAD_REQUEST, true, context);
   }
 }
 
+/**
+ * OpenAI integration specific error handling
+ */
 export class OpenAIError extends AgentError {
   constructor(message: string, code: string, context?: any) {
-    const statusCode = OpenAIError.getStatusCodeFromErrorType(code);
+    const statusCode = OpenAIError.getStatusCode(code);
     super(message, `OPENAI_${code}`, statusCode, true, context);
   }
 
-  private static getStatusCodeFromErrorType(code: string): number {
+  private static getStatusCode(code: string): number {
     switch (code) {
       case 'RATE_LIMIT_EXCEEDED':
-        return 429;
+        return NETWORK.HTTP_STATUS_TOO_MANY_REQUESTS; // 429
       case 'INSUFFICIENT_QUOTA':
       case 'INVALID_API_KEY':
-        return 401;
+        return NETWORK.HTTP_STATUS_UNAUTHORIZED; // 401
       case 'INVALID_REQUEST':
-        return 400;
+        return NETWORK.HTTP_STATUS_BAD_REQUEST; // 400
       case 'MODEL_NOT_FOUND':
-        return 404;
+        return NETWORK.HTTP_STATUS_NOT_FOUND; // 404
       case 'SERVER_ERROR':
-        return 500;
+      case 'UNKNOWN_ERROR':
+        return NETWORK.HTTP_STATUS_SERVER_ERROR; // 500
       case 'TIMEOUT':
-        return 408;
+        return NETWORK.HTTP_STATUS_TIMEOUT; // 408
       default:
-        return 500;
+        return NETWORK.HTTP_STATUS_BAD_REQUEST; // 400
     }
   }
 }
 
+/**
+ * Action execution specific error handling
+ */
 export class ActionError extends AgentError {
   constructor(message: string, code: string, context?: any) {
-    super(message, `ACTION_${code}`, 500, true, context);
+    super(message, `ACTION_${code}`, NETWORK.HTTP_STATUS_SERVER_ERROR, true, context);
   }
 }
 
+/**
+ * Input validation specific error handling
+ */
 export class ValidationError extends AgentError {
-  constructor(message: string, field: string, value: any) {
-    super(message, 'VALIDATION_ERROR', 400, true, { field, value });
+  constructor(message: string, code: string, context?: any) {
+    super(message, `VALIDATION_${code}`, NETWORK.HTTP_STATUS_BAD_REQUEST, true, context);
   }
 }
 
+/**
+ * Workspace operations specific error handling
+ */
 export class WorkspaceError extends AgentError {
-  constructor(message: string, code: string, workspace?: string, context?: any) {
-    super(message, `WORKSPACE_${code}`, 500, true, { workspace, ...context });
+  constructor(message: string, code: string, context?: any) {
+    super(message, `WORKSPACE_${code}`, NETWORK.HTTP_STATUS_BAD_REQUEST, true, context);
   }
 }
 
+/**
+ * Git operations specific error handling
+ */
 export class GitError extends AgentError {
-  constructor(message: string, code: string, repository?: string, context?: any) {
-    super(message, `GIT_${code}`, 500, true, { repository, ...context });
+  constructor(message: string, code: string, context?: any) {
+    super(message, `GIT_${code}`, NETWORK.HTTP_STATUS_BAD_REQUEST, true, context);
   }
 }
 
+/**
+ * Security validation specific error handling
+ */
 export class SecurityError extends AgentError {
-  constructor(message: string, code: string, userId?: string, context?: any) {
-    super(message, `SECURITY_${code}`, 403, true, { userId, ...context });
+  constructor(message: string, code: string, context?: any) {
+    super(message, `SECURITY_${code}`, NETWORK.HTTP_STATUS_FORBIDDEN, true, context);
   }
 }
 
-// Error recovery strategies
+/**
+ * Error recovery strategies for automated error handling
+ */
 export enum RecoveryStrategy {
   RETRY = 'retry',
   FALLBACK = 'fallback',
@@ -183,6 +209,9 @@ export enum RecoveryStrategy {
   MANUAL_INTERVENTION = 'manual_intervention',
 }
 
+/**
+ * Configuration for automated error recovery behavior
+ */
 export interface ErrorRecoveryConfig {
   strategy: RecoveryStrategy;
   maxRetries?: number;
@@ -191,6 +220,12 @@ export interface ErrorRecoveryConfig {
   shouldRetry?: (error: Error, attempt: number) => boolean;
 }
 
+/**
+ * Centralized error handler for automated recovery and logging
+ * 
+ * Provides singleton pattern for consistent error handling across the application
+ * with configurable recovery strategies and automated retry logic.
+ */
 // Error handler class
 export class ErrorHandler {
   private static instance: ErrorHandler;
@@ -263,7 +298,7 @@ export class ErrorHandler {
         throw new AgentError(
           `Manual intervention required: ${error.message}`,
           'MANUAL_INTERVENTION_REQUIRED',
-          500,
+          NETWORK.HTTP_STATUS_SERVER_ERROR,
           false,
           { originalError: error.toJSON() }
         );
@@ -280,7 +315,7 @@ export class ErrorHandler {
     context?: any
   ): Promise<any> {
     const maxRetries = config.maxRetries || 3;
-    const baseDelay = config.retryDelay || 1000;
+    const baseDelay = config.retryDelay || NETWORK.DEFAULT_RETRY_DELAY;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       // Check if we should retry
@@ -351,7 +386,7 @@ export const withErrorHandling = <T>(
 
 // Rate limiting error handler
 export const handleRateLimit = async (error: any, retryAfter?: number): Promise<void> => {
-  const delay = retryAfter || 5000;
+  const delay = retryAfter || NETWORK.DEFAULT_RATE_LIMIT_DELAY;
   logger.warn(`Rate limit encountered, waiting ${delay}ms before retry`, { delay });
   await new Promise(resolve => setTimeout(resolve, delay));
 };
@@ -381,7 +416,7 @@ export const initializeErrorRecovery = () => {
   errorHandler.registerRecoveryStrategy('OPENAI_RATE_LIMIT', {
     strategy: RecoveryStrategy.RETRY,
     maxRetries: 3,
-    retryDelay: 5000,
+    retryDelay: NETWORK.DEFAULT_RATE_LIMIT_DELAY,
     shouldRetry: (error, attempt) => attempt <= 3,
   });
 
@@ -396,7 +431,7 @@ export const initializeErrorRecovery = () => {
   errorHandler.registerRecoveryStrategy('GIT_OPERATION_FAILED', {
     strategy: RecoveryStrategy.RETRY,
     maxRetries: 2,
-    retryDelay: 1000,
+    retryDelay: NETWORK.DEFAULT_RETRY_DELAY,
   });
 
   // Workspace access errors
@@ -409,5 +444,3 @@ export const initializeErrorRecovery = () => {
     strategy: RecoveryStrategy.ABORT,
   });
 };
-
-export default ErrorHandler;

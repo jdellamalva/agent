@@ -1,7 +1,51 @@
 /**
  * Command Validation Rules
  * 
- * Specific validation rules for structured commands to be used by
+ * Specific validation rules for str          const validActions = [
+            // File System Operations
+            'file_create', 'file_read', 'file_update', 'file_delete',
+            'file_copy', 'file_move', 'file_permissions', 'file_search',
+            'dir_create', 'dir_read', 'dir_delete', 'dir_copy', 'dir_move', 'dir_permissions',
+            
+            // Git Operations
+            'git_clone', 'git_status', 'git_add', 'git_commit', 'git_push', 'git_pull',
+            'git_branch', 'git_checkout', 'git_merge', 'git_log', 'git_diff', 'git_tag',
+            
+            // Network/API Operations
+            'http_get', 'http_post', 'http_put', 'http_delete',
+            'api_call', 'webhook_send', 'ftp_upload', 'ftp_download',
+            
+            // Data Operations
+            'data_fetch', 'data_transform', 'data_validate', 'data_export',
+            'data_merge', 'data_filter',
+            
+            // Database Operations
+            'db_query', 'db_insert', 'db_update', 'db_delete', 'db_backup', 'db_restore',
+            
+            // Code Analysis & Quality
+            'code_parse', 'code_lint', 'code_test', 'code_format',
+            'code_analyze', 'code_review', 'code_security_scan', 'code_coverage',
+            
+            // Project Management
+            'project_scaffold', 'project_init', 'project_build', 'project_deploy',
+            'project_clean', 'project_archive',
+            
+            // Package Management
+            'npm_install', 'npm_uninstall', 'npm_update', 'npm_run',
+            'pip_install', 'pip_uninstall', 'pip_upgrade', 'pip_list',
+            
+            // Container Operations
+            'docker_build', 'docker_run', 'docker_stop', 'docker_deploy',
+            
+            // Monitoring & Observability
+            'metrics_collect', 'logs_analyze', 'performance_profile', 'health_check',
+            
+            // Shell Operations
+            'shell_exec', 'shell_script', 'process_kill', 'service_control',
+            
+            // Utility Operations
+            'wait', 'notify'
+          ];ds to be used by
  * ResponseParser and other command-handling components.
  */
 
@@ -15,7 +59,14 @@ import {
   ValidationError,
   ValidationWarning 
 } from '../commands/CommandSchema';
+import { VALIDATION, SECURITY } from '../../config/constants';
 
+/**
+ * Command validation rules for security and safety enforcement
+ * 
+ * Implements comprehensive validation rules for command schema validation,
+ * security checks, and parameter validation.
+ */
 export class CommandValidationRules {
   /**
    * Initialize command validation rules
@@ -39,13 +90,13 @@ export class CommandValidationRules {
           if (typeof command.confidence !== 'number') {
             return { isValid: false, message: 'confidence must be a number' };
           }
-          if (command.confidence < 0 || command.confidence > 1) {
-            return { isValid: false, message: 'confidence must be between 0 and 1' };
+          if (command.confidence < VALIDATION.MIN_CONFIDENCE || command.confidence > VALIDATION.MAX_CONFIDENCE) {
+            return { isValid: false, message: `confidence must be between ${VALIDATION.MIN_CONFIDENCE} and ${VALIDATION.MAX_CONFIDENCE}` };
           }
           return { isValid: true };
         }
       },
-      rules.lowConfidenceWarning(0.7)
+      rules.lowConfidenceWarning(VALIDATION.LOW_CONFIDENCE_WARNING_THRESHOLD)
     ]);
 
     // Register rules for new BaseCommand schema
@@ -74,18 +125,49 @@ export class CommandValidationRules {
         severity: 'error',
         validate: (command: BaseCommand) => {
           const validActions: ActionType[] = [
+            // File System Operations
             'file_create', 'file_read', 'file_update', 'file_delete',
-            'dir_create', 'dir_read', 'dir_delete',
+            'file_copy', 'file_move', 'file_permissions', 'file_search',
+            'dir_create', 'dir_read', 'dir_delete', 'dir_copy', 'dir_move', 'dir_permissions',
+            
+            // Git Operations
             'git_clone', 'git_status', 'git_add', 'git_commit', 'git_push', 'git_pull',
-            'git_branch', 'git_checkout', 'git_merge', 'git_log', 'git_diff',
-            'api_call', 'http_get', 'http_post', 'http_put', 'http_delete',
+            'git_branch', 'git_checkout', 'git_merge', 'git_log', 'git_diff', 'git_tag',
+            
+            // Network/API Operations
+            'http_get', 'http_post', 'http_put', 'http_delete',
+            'api_call', 'webhook_send', 'ftp_upload', 'ftp_download',
+            
+            // Data Operations
             'data_fetch', 'data_transform', 'data_validate', 'data_export',
-            'code_parse', 'code_lint', 'code_test', 'code_format', 'code_analyze',
+            'data_merge', 'data_filter',
+            
+            // Database Operations
+            'db_query', 'db_insert', 'db_update', 'db_delete', 'db_backup', 'db_restore',
+            
+            // Code Analysis & Quality
+            'code_parse', 'code_lint', 'code_test', 'code_format',
+            'code_analyze', 'code_review', 'code_security_scan', 'code_coverage',
+            
+            // Project Management
             'project_scaffold', 'project_init', 'project_build', 'project_deploy',
+            'project_clean', 'project_archive',
+            
+            // Package Management
             'npm_install', 'npm_uninstall', 'npm_update', 'npm_run',
-            'pip_install', 'pip_uninstall', 'pip_upgrade',
-            'shell_exec', 'shell_script',
-            'wait', 'delay', 'notify', 'log'
+            'pip_install', 'pip_uninstall', 'pip_upgrade', 'pip_list',
+            
+            // Container Operations
+            'docker_build', 'docker_run', 'docker_stop', 'docker_deploy',
+            
+            // Monitoring & Observability
+            'metrics_collect', 'logs_analyze', 'performance_profile', 'health_check',
+            
+            // Shell Operations
+            'shell_exec', 'shell_script', 'process_kill', 'service_control',
+            
+            // Utility Operations
+            'wait', 'notify'
           ];
           
           if (!validActions.includes(command.action)) {
@@ -108,8 +190,8 @@ export class CommandValidationRules {
           if (typeof command.confidence !== 'number') {
             return { isValid: false, message: 'confidence must be a number' };
           }
-          if (command.confidence < 0 || command.confidence > 1) {
-            return { isValid: false, message: 'confidence must be between 0 and 1' };
+          if (command.confidence < VALIDATION.MIN_CONFIDENCE || command.confidence > VALIDATION.MAX_CONFIDENCE) {
+            return { isValid: false, message: `confidence must be between ${VALIDATION.MIN_CONFIDENCE} and ${VALIDATION.MAX_CONFIDENCE}` };
           }
           return { isValid: true };
         }
@@ -129,7 +211,7 @@ export class CommandValidationRules {
         }
       },
       
-      rules.lowConfidenceWarning(0.7)
+      rules.lowConfidenceWarning(VALIDATION.LOW_CONFIDENCE_WARNING_THRESHOLD)
     ]);
   }
 
@@ -485,7 +567,7 @@ export class CommandValidationRules {
             /rm\s+-rf/i,
             /sudo/i,
             /passwd/i,
-            /chmod\s+777/i,
+            new RegExp(`chmod\\s+${SECURITY.DANGEROUS_CHMOD_PATTERN}`, 'i'),
             /--force/i,
             /DROP\s+TABLE/i,
             /DELETE\s+FROM/i

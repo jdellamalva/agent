@@ -81,6 +81,12 @@ export interface OrchestrationSystemStatus {
   isHealthy: boolean;
 }
 
+/**
+ * Central orchestrator for LLM interactions and resource management
+ * 
+ * Coordinates between prompt engineering, multiple LLM providers, token management,
+ * rate limiting, and response parsing to provide a unified interface for LLM operations.
+ */
 export class LLMOrchestrator {
   private provider: LLMProvider;
   private promptEngineer: PromptEngineer;

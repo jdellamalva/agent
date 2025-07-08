@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import logger, { agentLogger, logAgentCycle } from '../src/utils/logger';
+import { agentLogger, logAgentCycle } from '../src/utils/logger';
 import { AgentError, SlackError, ValidationError, ErrorHandler, initializeErrorRecovery } from '../src/utils/errors';
 import { validateConfig } from '../src/utils/config';
 
@@ -38,7 +38,7 @@ describe('Error Handling System', () => {
     const slackError = new SlackError('Slack failed', 'API_ERROR');
     expect(slackError.code).toBe('SLACK_API_ERROR');
     
-    const validationError = new ValidationError('Invalid field', 'username', null);
+    const validationError = new ValidationError('Invalid field', 'ERROR', { field: 'username', value: null });
     expect(validationError.code).toBe('VALIDATION_ERROR');
     expect(validationError.context.field).toBe('username');
   });

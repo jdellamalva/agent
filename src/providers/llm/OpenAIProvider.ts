@@ -44,7 +44,14 @@ import {
   LLMProviderConfig 
 } from '../../core/llm/LLMProvider';
 import { OpenAIError } from '../../utils/errors';
+import { OPENAI_PRICING, NETWORK } from '../../config/constants';
 
+/**
+ * OpenAI provider implementation for LLM operations
+ * 
+ * Provides OpenAI-specific API integration with token management,
+ * rate limiting, and error handling.
+ */
 export class OpenAIProvider extends LLMProvider {
   private client: OpenAI;
 
@@ -186,18 +193,27 @@ export class OpenAIProvider extends LLMProvider {
   }
 
   calculateCost(tokensUsed: LLMTokenUsage): number {
-    // Pricing per 1K tokens (approximate, as of 2024)
-    const pricing: Record<string, { input: number; output: number }> = {
-      'gpt-4o': { input: 0.005, output: 0.015 },
-      'gpt-4': { input: 0.03, output: 0.06 },
-      'gpt-4-turbo': { input: 0.01, output: 0.03 },
-      'gpt-3.5-turbo': { input: 0.001, output: 0.002 },
-    };
-
-    const modelPricing = pricing[this.config.model] || pricing['gpt-4']!; // Default to gpt-4 pricing
+    // Use centralized pricing from constants - standardize on OPENAI_PRICING structure
+    let modelPricing;
     
-    const inputCost = (tokensUsed.promptTokens / 1000) * modelPricing.input;
-    const outputCost = (tokensUsed.completionTokens / 1000) * modelPricing.output;
+    // Map model names to OPENAI_PRICING constants
+    switch (this.config.model) {
+      case 'gpt-4':
+        modelPricing = { input: OPENAI_PRICING.GPT_4.PROMPT_RATE, output: OPENAI_PRICING.GPT_4.COMPLETION_RATE };
+        break;
+      case 'gpt-4-turbo':
+        modelPricing = { input: OPENAI_PRICING.GPT_4_TURBO.PROMPT_RATE, output: OPENAI_PRICING.GPT_4_TURBO.COMPLETION_RATE };
+        break;
+      case 'gpt-3.5-turbo':
+        modelPricing = { input: OPENAI_PRICING.GPT_3_5_TURBO.PROMPT_RATE, output: OPENAI_PRICING.GPT_3_5_TURBO.COMPLETION_RATE };
+        break;
+      default:
+        // Default to GPT-4 pricing for unknown models
+        modelPricing = { input: OPENAI_PRICING.GPT_4.PROMPT_RATE, output: OPENAI_PRICING.GPT_4.COMPLETION_RATE };
+    }
+    
+    const inputCost = (tokensUsed.promptTokens / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * modelPricing.input;
+    const outputCost = (tokensUsed.completionTokens / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * modelPricing.output;
     
     return inputCost + outputCost;
   }
@@ -237,17 +253,17 @@ export class OpenAIProvider extends LLMProvider {
   private handleOpenAIAPIError(error: any): OpenAIError {
     if (error?.status) {
       switch (error.status) {
-        case 401:
+        case NETWORK.HTTP_STATUS_UNAUTHORIZED:
           return new OpenAIError('Invalid API key', 'INVALID_API_KEY', { originalError: error });
-        case 429:
+        case NETWORK.HTTP_STATUS_TOO_MANY_REQUESTS:
           return new OpenAIError('Rate limit exceeded', 'RATE_LIMIT_EXCEEDED', { originalError: error });
-        case 400:
+        case NETWORK.HTTP_STATUS_BAD_REQUEST:
           return new OpenAIError('Invalid request', 'INVALID_REQUEST', { originalError: error });
-        case 404:
+        case NETWORK.HTTP_STATUS_NOT_FOUND:
           return new OpenAIError('Model not found', 'MODEL_NOT_FOUND', { originalError: error });
-        case 500:
-        case 502:
-        case 503:
+        case NETWORK.HTTP_STATUS_SERVER_ERROR:
+        case NETWORK.HTTP_STATUS_BAD_GATEWAY:
+        case NETWORK.HTTP_STATUS_SERVICE_UNAVAILABLE:
           return new OpenAIError('OpenAI server error', 'SERVER_ERROR', { originalError: error });
         default:
           return new OpenAIError(

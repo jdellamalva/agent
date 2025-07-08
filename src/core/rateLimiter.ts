@@ -39,6 +39,7 @@
 
 import { agentLogger } from '../utils/logger';
 import { OpenAIError } from '../utils/errors';
+import { NETWORK, TIMEOUTS } from '../config/constants';
 
 const logger = agentLogger.child({ component: 'rateLimiter' });
 
@@ -81,6 +82,12 @@ export interface RateLimitStatus {
   };
 }
 
+/**
+ * Rate limiting and request queuing system for API calls
+ * 
+ * Implements token bucket algorithm with exponential backoff for managing
+ * API rate limits and preventing service overload.
+ */
 export class RateLimiter {
   private config: RateLimitConfig;
   private backoffConfig: BackoffConfig;
@@ -95,7 +102,7 @@ export class RateLimiter {
     this.config = {
       requestsPerMinute: 50,
       requestsPerHour: 3000,
-      requestsPerDay: 10000,
+      requestsPerDay: NETWORK.DEFAULT_REQUESTS_PER_DAY,
       tokensPerMinute: 90000,
       tokensPerHour: 2000000,
       tokensPerDay: 10000000,
@@ -103,15 +110,15 @@ export class RateLimiter {
     };
 
     this.backoffConfig = {
-      initialDelay: 1000, // 1 second
-      maxDelay: 60000, // 1 minute
+      initialDelay: NETWORK.INITIAL_RETRY_DELAY, // 1 second
+      maxDelay: NETWORK.MAX_RETRY_DELAY, // 1 minute
       multiplier: 2,
       maxRetries: 5,
       ...backoffConfig
     };
 
     // Clean up old requests periodically
-    this.cleanupInterval = setInterval(() => this.cleanupOldRequests(), 60000); // Every minute
+    this.cleanupInterval = setInterval(() => this.cleanupOldRequests(), NETWORK.RATE_LIMIT_CLEANUP_INTERVAL); // Every minute
   }
 
   /**
@@ -244,7 +251,7 @@ export class RateLimiter {
     // Extract retry-after header if available
     let retryAfter = 0;
     if (error.headers && error.headers['retry-after']) {
-      retryAfter = parseInt(error.headers['retry-after']) * 1000;
+      retryAfter = parseInt(error.headers['retry-after']) * TIMEOUTS.SECOND;
     }
 
     // Calculate backoff delay
@@ -357,14 +364,14 @@ export class RateLimiter {
   }
 
   private isRateLimitError(error: any): boolean {
-    return error.status === 429 || 
+    return error.status === NETWORK.HTTP_STATUS_TOO_MANY_REQUESTS || 
            (error.message && error.message.toLowerCase().includes('rate limit'));
   }
 
   private getCurrentUsage(now: number): RateLimitStatus['currentUsage'] {
-    const oneMinuteAgo = now - 60 * 1000;
-    const oneHourAgo = now - 60 * 60 * 1000;
-    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    const oneMinuteAgo = now - TIMEOUTS.MINUTE;
+    const oneHourAgo = now - TIMEOUTS.HOUR;
+    const oneDayAgo = now - TIMEOUTS.DAY;
 
     const recentRequests = this.requestHistory.filter(req => req.timestamp > oneMinuteAgo);
     const hourlyRequests = this.requestHistory.filter(req => req.timestamp > oneHourAgo);
@@ -382,26 +389,26 @@ export class RateLimiter {
 
   private getWaitTimeForNextMinute(now: number): number {
     const oldestInMinute = this.requestHistory
-      .filter(req => req.timestamp > now - 60 * 1000)
+      .filter(req => req.timestamp > now - TIMEOUTS.MINUTE)
       .sort((a, b) => a.timestamp - b.timestamp)[0];
     
-    return oldestInMinute ? (oldestInMinute.timestamp + 60 * 1000) - now : 0;
+    return oldestInMinute ? (oldestInMinute.timestamp + TIMEOUTS.MINUTE) - now : 0;
   }
 
   private getWaitTimeForNextHour(now: number): number {
     const oldestInHour = this.requestHistory
-      .filter(req => req.timestamp > now - 60 * 60 * 1000)
+      .filter(req => req.timestamp > now - TIMEOUTS.HOUR)
       .sort((a, b) => a.timestamp - b.timestamp)[0];
     
-    return oldestInHour ? (oldestInHour.timestamp + 60 * 60 * 1000) - now : 0;
+    return oldestInHour ? (oldestInHour.timestamp + TIMEOUTS.HOUR) - now : 0;
   }
 
   private getWaitTimeForNextDay(now: number): number {
     const oldestInDay = this.requestHistory
-      .filter(req => req.timestamp > now - 24 * 60 * 60 * 1000)
+      .filter(req => req.timestamp > now - TIMEOUTS.DAY)
       .sort((a, b) => a.timestamp - b.timestamp)[0];
     
-    return oldestInDay ? (oldestInDay.timestamp + 24 * 60 * 60 * 1000) - now : 0;
+    return oldestInDay ? (oldestInDay.timestamp + TIMEOUTS.DAY) - now : 0;
   }
 
   private sortQueue(): void {
@@ -427,7 +434,7 @@ export class RateLimiter {
   }
 
   private cleanupOldRequests(): void {
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const oneDayAgo = Date.now() - TIMEOUTS.DAY;
     const originalLength = this.requestHistory.length;
     
     this.requestHistory = this.requestHistory.filter(req => req.timestamp > oneDayAgo);

@@ -26,7 +26,7 @@ jest.mock('@slack/web-api', () => ({
 // Mock the config
 jest.mock('../src/utils/config', () => ({
   __esModule: true,
-  default: {
+  defaultConfig: {
     slack: {
       botToken: 'xoxb-test-token',
       signingSecret: 'test-signing-secret',
@@ -105,7 +105,7 @@ describe('SlackClient', () => {
       // Mock incomplete config
       jest.doMock('../src/utils/config', () => ({
         __esModule: true,
-        default: {
+        defaultConfig: {
           slack: {
             botToken: null,
             signingSecret: null,

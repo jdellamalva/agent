@@ -1,53 +1,51 @@
 # LLM Agent Development Guide
 
-## 🎯 CORE ARCHITECTURAL PRINCIPLES
+<!-- @governance-override: documentation: test=development-guide-examples: TypeScript code examples in this file are for documentation purposes only, not actual exports requiring JSDoc -->
 
-### **The Three Pillars of Maintainable Code**
+## 🎯 AUTOMATED CODE GOVERNANCE
 
-#### **1. DRY (Don't Repeat Yourself) - ENFORCED** 🚫🔄
-**Principle**: Every piece of knowledge must have a single, unambiguous, authoritative representation.
+This project uses an **automated governance system** instead of manual code reviews. Rather than maintaining an ever-growing essay-style guide that would eventually hit context window limits, we use deterministic and semi-deterministic scripts to enforce standards consistently and scalably.
 
-**Implementation Patterns**:
-```typescript
-// ✅ GOOD: Centralized validation
-export class ValidationEngine {
-  static createCommonRules() {
-    return {
-      required: <T>(field: string) => ({ /* reusable logic */ }),
-      stringType: (field: string) => ({ /* reusable logic */ })
-    };
-  }
-}
+### 📋 Quick Start - Governance Commands
 
-// ❌ BAD: Duplicate validation in multiple files
-class ComponentA { validateRequired(val) { /* duplicate logic */ } }
-class ComponentB { validateRequired(val) { /* duplicate logic */ } }
+```bash
+# Check all standards before committing
+npm run governance:check
+
+# Run only fast, deterministic checks
+npm run governance:deterministic
+
+# Run only AI-assisted checks (requires OpenAI API key)
+npm run governance:llm
+
+# Check specific standards
+npm run governance:magic-numbers
+npm run governance:docs
+npm run governance:naming
+npm run governance:imports
+npm run governance:todos
+npm run governance:complexity
 ```
 
-**Review Checklist**:
-- [ ] No duplicate validation logic
-- [ ] Configuration accessed through single source
-- [ ] Error handling follows consistent patterns
-- [ ] Utility functions are reusable across components
+### 🎮 Governance Dashboard
 
-#### **2. Separation of Concerns - ENFORCED** 🎯
-**Principle**: Each module should have one reason to change.
+**Primary Documentation**: [`scripts/governance/README.md`](scripts/governance/README.md)
 
-**Layer Architecture**:
-```typescript
-// ✅ GOOD: Clear layer separation
-src/core/          // Business logic (no external dependencies)
-src/integrations/  // External API handling 
-src/providers/     // Implementation details
-src/utils/         // Cross-cutting concerns (logging, errors)
+The governance system replaces manual review with automated enforcement:
 
-// ❌ BAD: Mixed concerns
-class UserService {
-  saveUser() { /* business logic */ }
-  sendEmail() { /* external service */ }
-  logActivity() { /* cross-cutting */ }
-}
-```
+| Standard | Script | Type | Description |
+|----------|--------|------|-------------|
+| **No Magic Numbers** | `check-magic-numbers.ts` | Deterministic | All hardcoded values centralized in constants |
+| **Documentation Coverage** | `check-documentation.ts` | Deterministic | All major components have JSDoc |
+| **Naming Conventions** | `check-naming-conventions.ts` | Deterministic | PascalCase, camelCase, SCREAMING_SNAKE_CASE |
+| **Import/Export Standards** | `check-import-export.ts` | Deterministic | Named exports, import grouping, no cycles |
+| **TODO/FIXME Standards** | `check-todo-standards.ts` | Deterministic | Proper format with owner and deadline |
+| **DRY Principle** | `analyze-dry.ts` | LLM-Assisted | Code duplication detection |
+| **Code Complexity** | `analyze-complexity.ts` | LLM-Assisted | Function complexity analysis |
+
+**Status**: ✅ All governance checks currently pass
+
+## 🚀 CORE ARCHITECTURAL PRINCIPLES (Enforced Automatically)
 
 **Interface Design**:
 ```typescript
@@ -251,6 +249,86 @@ export class LLMOrchestrator {
 }
 ```
 
+#### **4. Configuration Management - ENFORCED** ⚙️
+**Principle**: All configuration values must be centralized and environment-configurable to eliminate magic numbers and improve maintainability.
+
+**Implementation Patterns**:
+```typescript
+// ✅ GOOD: Centralized configuration constants
+import { VALIDATION, TIMEOUTS, NETWORK, OPENAI_PRICING } from '../config/constants';
+
+export class OpenAIProvider {
+  calculateCost(tokensUsed: TokenUsage): number {
+    const modelPricing = this.getPricing(this.config.model);
+    const inputCost = (tokensUsed.promptTokens / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * modelPricing.input;
+    const outputCost = (tokensUsed.completionTokens / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * modelPricing.output;
+    return inputCost + outputCost;
+  }
+
+  private handleAPIError(error: any): OpenAIError {
+    switch (error.status) {
+      case NETWORK.HTTP_STATUS_TOO_MANY_REQUESTS:
+        return new OpenAIError('Rate limit exceeded', 'RATE_LIMIT_EXCEEDED');
+      case NETWORK.HTTP_STATUS_UNAUTHORIZED:
+        return new OpenAIError('Invalid API key', 'INVALID_API_KEY');
+      default:
+        return new OpenAIError('API error', 'API_ERROR');
+    }
+  }
+}
+
+// ✅ GOOD: Environment-configurable constants
+export const VALIDATION = {
+  DEFAULT_CONFIDENCE: getEnvOverride('AGENT_VALIDATION_DEFAULT_CONFIDENCE', 0.8),
+  MAX_RETRY_ATTEMPTS: getEnvOverride('AGENT_VALIDATION_MAX_RETRIES', 3),
+} as const;
+
+// ❌ BAD: Magic numbers scattered throughout code
+export class BadProvider {
+  calculateCost(tokensUsed: TokenUsage): number {
+    const inputCost = (tokensUsed.promptTokens / 1000) * 0.03;  // Magic numbers!
+    const outputCost = (tokensUsed.completionTokens / 1000) * 0.06;
+    return inputCost + outputCost;
+  }
+
+  private handleRetry(): void {
+    if (this.retryCount < 3) {  // Magic number!
+      setTimeout(() => this.retry(), 5000);  // Magic number!
+    }
+  }
+}
+```
+
+**Configuration Architecture**:
+```typescript
+// src/config/constants.ts - Single source of truth for all configuration
+export const VALIDATION = {
+  DEFAULT_CONFIDENCE: getEnvOverride('AGENT_VALIDATION_DEFAULT_CONFIDENCE', 0.8),
+  MAX_RETRY_ATTEMPTS: getEnvOverride('AGENT_VALIDATION_MAX_RETRIES', 3),
+} as const;
+
+export const TIMEOUTS = {
+  DEFAULT_OPERATION: getEnvOverride('AGENT_TIMEOUT_DEFAULT', 30000),
+  GIT_CLONE: getEnvOverride('AGENT_TIMEOUT_GIT_CLONE', 300000),
+  NPM_INSTALL: getEnvOverride('AGENT_TIMEOUT_NPM_INSTALL', 600000),
+} as const;
+
+export const NETWORK = {
+  HTTP_STATUS_TOO_MANY_REQUESTS: getEnvOverride('AGENT_NETWORK_STATUS_TOO_MANY_REQUESTS', 429),
+  DEFAULT_RETRY_DELAY: getEnvOverride('AGENT_NETWORK_RETRY_DELAY', 1000),
+  DEFAULT_RATE_LIMIT_DELAY: getEnvOverride('AGENT_NETWORK_RATE_LIMIT_DELAY', 5000),
+} as const;
+```
+
+**Review Checklist**:
+- [ ] No hardcoded numbers in business logic
+- [ ] All timeouts use TIMEOUTS constants
+- [ ] All HTTP status codes use NETWORK constants
+- [ ] All pricing calculations use OPENAI_PRICING constants
+- [ ] Environment variables documented with defaults
+- [ ] Constants grouped by logical domain (VALIDATION, TIMEOUTS, etc.)
+- [ ] Tests updated to use constants instead of hardcoded values
+
 ### **Documentation Standards - REQUIRED** 📚
 
 #### **File-Level Documentation**
@@ -383,6 +461,15 @@ Before submitting code for review, verify:
 - [ ] Error handling follows consistent patterns
 - [ ] Validation logic reuses ValidationEngine rules
 
+**Configuration Management Compliance**:
+- [ ] No magic numbers or hardcoded values in business logic
+- [ ] All constants imported from `src/config/constants.ts`
+- [ ] Timeouts use TIMEOUTS constants
+- [ ] HTTP status codes use NETWORK constants
+- [ ] Pricing calculations use OPENAI_PRICING constants
+- [ ] Environment variables have documented defaults
+- [ ] Tests use constants instead of hardcoded values
+
 **SOLID Principles Compliance**:
 - [ ] Single Responsibility: Each class has one clear purpose
 - [ ] Open/Closed: New functionality added via extension, not modification
@@ -482,511 +569,29 @@ Before submitting code for review, verify:
 - [ ] Error monitoring integration functional
 - [ ] Health check endpoints working
 
-### **LLM-Digestible Hierarchical Structure** 🤖📚
-
-The codebase is organized for optimal LLM understanding and context management:
-
-#### **Information Architecture for AI Agents**
-
-**Top-Level Structure (Context Priority)**:
-```
-1. Interface Definitions (contracts and types)
-2. Core Business Logic (domain models and services) 
-3. Provider Implementations (external integrations)
-4. Utility Functions (cross-cutting concerns)
-5. Configuration and Setup (environment and deployment)
-```
-
-**File Organization Patterns**:
-```typescript
-// ✅ GOOD: Clear hierarchical naming for LLM context
-src/
-├── core/                    // HIGH PRIORITY: Core business logic
-│   ├── llm/                // LLM orchestration and providers
-│   │   ├── LLMOrchestrator.ts    // Main coordination logic
-│   │   └── LLMProvider.ts        // Provider interface definition
-│   ├── channels/           // Communication channels
-│   │   └── MessageChannel.ts     // Channel interface definition
-│   └── validation/         // Input validation and safety
-│       ├── ValidationEngine.ts   // Core validation framework
-│       └── CommandValidationRules.ts // Specific validation rules
-├── providers/              // MEDIUM PRIORITY: External integrations
-│   ├── llm/               // LLM provider implementations
-│   │   └── OpenAIProvider.ts     // OpenAI-specific implementation
-│   └── channels/          // Channel provider implementations
-│       └── SlackChannel.ts       // Slack-specific implementation
-├── utils/                  // LOW PRIORITY: Cross-cutting utilities
-│   ├── logger.ts          // Logging infrastructure
-│   ├── errors.ts          // Error handling utilities
-│   └── config.ts          // Configuration management
-└── integrations/          // LOWEST PRIORITY: Legacy/specialized
-    ├── openai.ts          // Direct OpenAI integration
-    └── slack.ts           // Direct Slack integration
-```
-
-**Documentation Hierarchy for LLM Context**:
-```typescript
-/**
- * Level 1: File Purpose (What this module does)
- * Level 2: Dependencies (What it needs to work)
- * Level 3: Key Patterns (How it's structured)
- * Level 4: Lifecycle (When/how it's used)
- * Level 5: Performance (Optimization details)
- * Level 6: Error Handling (Failure scenarios)
- */
-
-/**
- * Class-Level Documentation:
- * - Responsibility (Single clear purpose)
- * - Collaborators (What it works with)
- * - Lifecycle (Creation to destruction)
- * - Threading/Concurrency (If applicable)
- */
-
-/**
- * Method-Level Documentation:
- * - Purpose (What it accomplishes)
- * - Parameters (Inputs and validation)
- * - Return Values (Outputs and types)
- * - Side Effects (State changes)
- * - Error Conditions (Exception scenarios)
- * - Performance Notes (Complexity/caching)
- */
-```
-
-**LLM Context Management Strategy**:
-```typescript
-// Interface definitions first (highest context value)
-export interface LLMProvider {
-  generateResponse(request: LLMRequest): Promise<LLMResponse>;
-  getCapabilities(): LLMCapabilities;
-}
-
-// Implementation follows interface (maintains context)
-export class OpenAIProvider implements LLMProvider {
-  // Implementation details...
-}
-
-// Usage patterns documented for LLM understanding
-/**
- * Usage Example for LLM Agents:
- * 
- * const provider = new OpenAIProvider(config);
- * const request = { prompt: "Generate code", options: {} };
- * const response = await provider.generateResponse(request);
- * 
- * Common Patterns:
- * - Always validate inputs before processing
- * - Use structured responses for parsing
- * - Implement proper error handling
- * - Cache expensive operations
- */
-```
-
-**Naming Conventions for LLM Clarity**:
-```typescript
-// ✅ GOOD: Self-documenting names for LLM understanding
-export class TokenUsageTracker {        // Clear responsibility
-  estimateTokenCost(): number          // Clear action
-  recordActualUsage(): void           // Clear side effect
-  generateUsageReport(): Report       // Clear output
-}
-
-// ✅ GOOD: Interface names indicate contracts
-export interface MessageChannelProvider {  // Clear abstraction
-  sendMessage(): Promise<MessageResult>    // Clear async operation
-  receiveMessage(): Promise<Message>       // Clear async operation
-}
-
-// ❌ BAD: Ambiguous names that confuse LLMs
-export class Manager {                // What does it manage?
-  process(): any                     // What does it process?
-  handle(): void                    // What does it handle?
-}
-```
-
-**Cross-Reference Structure for Context Building**:
-```typescript
-/**
- * Related Files (for LLM context building):
- * - Interface: src/core/llm/LLMProvider.ts
- * - Implementation: src/providers/llm/OpenAIProvider.ts  
- * - Usage: src/core/llm/LLMOrchestrator.ts
- * - Tests: tests/openaiProvider.test.ts
- * - Config: src/utils/config.ts (LLM_PROVIDER_CONFIG)
- */
-```
-
-## Testing Framework & Best Practices Guide
-
-### Core Technology Stack
-- **Use TypeScript** for better type safety and development experience
-- **Implement comprehensive logging from day one** - debugging distributed systems is hard
-- **Multi-project isolation is critical** - one project's issues shouldn't affect others
-- **Version control everything** - all agent modifications should be tracked
-- **Sandbox dangerous operations** - especially when working with unknown codebases
-
-## Recent Improvements & Architectural Changes
-
-### ✅ DRY (Don't Repeat Yourself) Improvements
-**Centralized Validation System** - Eliminated duplicate validation logic across components:
-- `src/core/validation/ValidationEngine.ts` - Generic validation framework
-- `src/core/validation/CommandValidationRules.ts` - Reusable validation rules
-- Replaced 200+ lines of scattered validation with centralized approach
-- Added warning system for security-sensitive operations
-
-### ✅ Separation of Concerns
-**Dependency Injection Container** - Improved testability and decoupling:
-- `src/core/di/DIContainer.ts` - Centralized dependency management
-- Removed tight coupling between components
-- Improved configuration management and testability
-
-### ✅ Performance Optimizations
-**Caching & Memoization System** - Improved performance for repetitive operations:
-- `src/core/performance/CacheManager.ts` - LRU cache with TTL support
-- Memoized token estimation in `TokenManager.ts`
-- Batch processing capabilities for bulk operations
-- Memory-aware cache eviction
-
-### ✅ Enhanced Testing Infrastructure
-**Type-Safe Mock Factories** - Eliminated TypeScript strict mode issues:
-- `tests/helpers/mockFactories.ts` - Comprehensive mock utilities
-- Fixed all Jest/TypeScript compatibility issues
-- Added proper async/error mock handling
-- Integration tests now pass without TypeScript errors
-
-## Testing Framework & Best Practices Guide
-
-### Jest Configuration & TypeScript Gotchas
-
-**🔴 CRITICAL GOTCHA**: Jest doesn't support TypeScript path aliases (@utils, @integrations) out of the box. The `moduleNameMapping` property doesn't exist in Jest. 
-
-**✅ SOLUTION**: Use relative imports in ALL test files and source files when having Jest issues:
-```typescript
-// ❌ DON'T USE (causes Jest errors)
-import { logger } from '@utils/logger';
-
-// ✅ USE THIS INSTEAD
-import { logger } from '../src/utils/logger';
-import { logger } from '../../src/utils/logger'; // from nested test dirs
-```
-
-### Testing Strategy & Coverage Analysis
-
-#### The 80/20 Rule of Test Coverage
-
-After achieving ~80% test coverage, the remaining 20% typically consists of:
-
-1. **Integration entry points** (`src/index.ts` - main startup logic)
-2. **External service integrations** (`src/integrations/slack.ts`, `src/integrations/openai.ts`)
-3. **Error handling edge cases** (network failures, malformed responses)
-4. **Configuration validation** (environment variable validation)
-5. **Process lifecycle management** (graceful shutdown, signal handlers)
-
-**📊 Coverage Priority Strategy**:
-- **Phase 1**: Get all core components to 100% coverage (transformers, parsers, managers)
-- **Phase 2**: Mock-based integration tests for external services (80-90% coverage)
-- **Phase 3**: End-to-end integration tests (remaining edge cases)
-
-#### Comprehensive Testing Checklist
-
-**Before starting any new component:**
-1. ✅ Create the test file first (TDD approach)
-2. ✅ Set up proper mocks for external dependencies
-3. ✅ Test the happy path with valid inputs
-4. ✅ Test error conditions and edge cases
-5. ✅ Validate TypeScript interfaces match implementations
-6. ✅ Test resource cleanup (destroy methods, memory management)
-
-**Mock Strategy Guidelines:**
-```typescript
-// ✅ GOOD: Comprehensive mock with all methods
-const mockLogger = {
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
-  child: jest.fn(() => mockLogger), // Important for nested loggers
-};
-
-// ✅ GOOD: Mock reset in beforeEach
-beforeEach(() => {
-  jest.clearAllMocks();
-  // Reset any module-level state
-});
-```
-
-#### Testing Anti-Patterns to Avoid
-
-**❌ DON'T DO THESE:**
-
-1. **Over-mocking**: Don't mock everything - test real logic where possible
-2. **Under-mocking**: Don't make real API calls in unit tests
-3. **Incomplete mocks**: Missing methods cause runtime errors in tests
-4. **Path alias usage**: Causes Jest module resolution failures
-5. **Integration tests without proper isolation**: Tests affect each other
-6. **Testing implementation details**: Test behavior, not internal structure
-
-### Component-Specific Testing Patterns
-
-#### Core Components (`src/core/`)
-```typescript
-// Pattern: Test pure functions and business logic
-describe('TokenManager', () => {
-  it('should calculate token usage correctly', () => {
-    const manager = new TokenManager(config);
-    const result = manager.calculateUsage(inputTokens, outputTokens);
-    expect(result.total).toBe(expectedTotal);
-  });
-});
-```
-
-#### Integration Components (`src/integrations/`)
-```typescript
-// Pattern: Mock external APIs completely
-jest.mock('openai', () => ({
-  OpenAI: jest.fn().mockImplementation(() => ({
-    chat: {
-      completions: {
-        create: jest.fn(),
-      },
-    },
-  })),
-}));
-```
-
-#### Provider Abstractions (`src/providers/`)
-```typescript
-// Pattern: Test interface compliance
-describe('OpenAIProvider', () => {
-  it('should implement LLMProvider interface correctly', () => {
-    const provider = new OpenAIProvider(config);
-    
-    // Test all interface methods exist
-    expect(typeof provider.generateResponse).toBe('function');
-    expect(typeof provider.getProviderName).toBe('function');
-    expect(typeof provider.destroy).toBe('function');
-  });
-});
-```
-
-### Test File Organization & Naming
-
-**📁 File Structure:**
-```
-tests/
-├── core/                    # Mirror src/ structure
-│   ├── promptEngineer.test.ts
-│   ├── tokenManager.test.ts
-│   └── ...
-├── integrations/
-│   ├── openai.test.ts
-│   ├── slack.test.ts
-│   └── ...
-├── providers/
-│   ├── llm/
-│   └── channels/
-├── utils/
-│   ├── logger.test.ts
-│   ├── config.test.ts
-│   └── ...
-├── infrastructure.test.ts   # System-level tests
-└── setup.ts                # Jest setup and globals
-```
-
-### Running & Monitoring Tests
-
-**🔄 Test Commands:**
-```bash
-npm test                    # Run all tests
-npm test -- --coverage     # Run with coverage report
-npm test -- --watch        # Watch mode for development
-npm test filename          # Run specific test file
-```
-
-**📊 Coverage Analysis:**
-- Use `npm test -- --coverage` to generate detailed coverage reports
-- Check `coverage/index.html` for line-by-line coverage visualization
-- Focus on files with <80% coverage first
-- Prioritize high-impact, low-coverage files (entry points, core logic)
-
-### Error Resolution Patterns
-
-**Common Test Failures & Solutions:**
-
-1. **Module Resolution Errors**
-   ```
-   Cannot find module '@utils/logger'
-   ```
-   **Solution**: Use relative imports: `../src/utils/logger`
-
-2. **Mock Function Errors**
-   ```
-   TypeError: mockFn.child is not a function
-   ```
-   **Solution**: Add missing methods to mock objects
-
-3. **Type Errors in Tests**
-   ```
-   Property 'destroy' does not exist on type
-   ```
-   **Solution**: Ensure test mocks match actual interface definitions
-
-4. **Test Isolation Issues**
-   ```
-   Tests pass individually but fail when run together
-   ```
-   **Solution**: Add proper `beforeEach` cleanup and mock resets
-
-### Advanced Testing Techniques
-
-#### Testing Async/Promise-based Code
-```typescript
-// ✅ GOOD: Proper async testing
-it('should handle async operations', async () => {
-  const result = await someAsyncFunction();
-  expect(result).toBeDefined();
-});
-
-// ✅ GOOD: Testing rejections
-it('should handle errors properly', async () => {
-  await expect(functionThatThrows()).rejects.toThrow('Expected error');
-});
-```
-
-#### Testing Event-Driven Code
-```typescript
-// ✅ GOOD: Testing event handlers
-it('should handle message events', (done) => {
-  const handler = new MessageHandler();
-  handler.onMessage((message) => {
-    expect(message.content).toBe('test');
-    done();
-  });
-  handler.processMessage({ content: 'test' });
-});
-```
-
-#### Performance & Memory Testing
-```typescript
-// ✅ GOOD: Testing resource cleanup
-it('should clean up resources on destroy', () => {
-  const manager = new ResourceManager();
-  const spy = jest.spyOn(manager, 'cleanup');
-  
-  manager.destroy();
-  
-  expect(spy).toHaveBeenCalled();
-});
-```
-
-### Testing & Jest Configuration
-- **JEST TESTING GOTCHA**: Jest doesn't support TypeScript path aliases (@utils, @integrations) out of the box. The `moduleNameMapping` property doesn't exist in Jest. Use relative imports (../src/utils/logger) in source files when having Jest test issues, or create a working Jest module mapping configuration. Don't get stuck iterating on this - the working pattern is relative imports like the infrastructure.test.ts file.
-
-## Definition of Done
-
-### Code Quality Standards
-✅ **ALL tests must pass** - No exceptions for any commits to main branch
-✅ **TypeScript strict mode compliance** - No `any` types, proper interfaces
-✅ **ESLint clean** - Zero linting errors or warnings
-✅ **No unused imports** - All imports must be actively used in the file
-✅ **Dependency hygiene** - Only necessary packages in production dependencies
-✅ **Test coverage ≥ 90%** for all new core components (excluding integrations)
-✅ **Documentation updated** - README, development guide, inline comments
-✅ **Error handling** - Proper error boundaries and graceful degradation
-✅ **Logging implemented** - Appropriate log levels for debugging and monitoring
-✅ **Security validated** - No hardcoded secrets, input validation present
-
-### Import & Dependency Management
-✅ **No unused imports** - Remove all imports that aren't actively used in the file
-✅ **Import organization** - External packages first, then internal modules, alphabetically sorted
-✅ **Production dependencies** - Only runtime-required packages in `dependencies`
-✅ **Development dependencies** - Testing, building, linting tools in `devDependencies`
-✅ **Type definitions** - All `@types/*` packages in `devDependencies`
-✅ **Package audit** - Regularly review dependencies for unused packages
-
-**Import Standards**:
-```typescript
-// ✅ GOOD: Organized imports
-import OpenAI from 'openai';           // External packages first
-import { App } from '@slack/bolt';     // Alphabetically sorted
-import winston from 'winston';
-
-import { LLMProvider } from './LLMProvider';    // Internal modules after
-import { agentLogger } from '../utils/logger';  // Relative imports
-
-// ❌ BAD: Unused imports, mixed organization
-import { SomeUnusedType } from './types';     // Unused
-import { agentLogger } from '../utils/logger'; // Mixed with external
-import winston from 'winston';
-```
-
-**Dependency Hygiene**:
-- **Production**: Only packages needed at runtime (`openai`, `@slack/bolt`, `winston`, etc.)
-- **Development**: Building, testing, linting tools (`typescript`, `jest`, `@types/*`)
-- **Regular cleanup**: Remove packages that are no longer used in the codebase
-
-### Testing Requirements
-✅ **Unit tests** - All functions and classes have comprehensive test coverage
-✅ **Integration tests** - Component interactions tested with proper mocks
-✅ **Error scenarios** - Edge cases and failure modes covered
-✅ **Mock utilities** - Reusable test helpers in `tests/helpers/mockFactories.ts`
-✅ **Type safety** - Tests use proper TypeScript types, no test-time type errors
-
-### Architecture & Design Standards
-✅ **DRY compliance** - No duplicate logic; use centralized utilities
-✅ **Separation of concerns** - Single responsibility principle followed
-✅ **Dependency injection** - Components loosely coupled via DI container
-✅ **Performance optimization** - Caching implemented where appropriate
-✅ **Validation centralized** - Use `ValidationEngine` for all validation logic
-
-### Performance Standards
-✅ **Response time** - API responses under 2 seconds for typical requests
-✅ **Memory usage** - Proper cleanup, no memory leaks in long-running processes
-✅ **Caching strategy** - Appropriate use of `CacheManager` for expensive operations
-✅ **Token efficiency** - Optimized prompt engineering to minimize API costs
-
-### Security & Safety Standards
-✅ **Input validation** - All user inputs validated through `ValidationEngine`
-✅ **Path traversal protection** - File operations properly sandboxed
-✅ **Sensitive data handling** - No secrets logged or exposed
-✅ **Rate limiting** - Proper backoff and throttling implemented
-✅ **Error information** - Error messages don't leak sensitive information
-
-### Documentation Standards
-✅ **Code comments** - Complex logic explained with inline documentation
-✅ **Type definitions** - All interfaces and types properly documented
-✅ **API documentation** - All public methods have JSDoc comments
-✅ **Architecture decisions** - Major changes documented in this guide
-✅ **Usage examples** - Examples provided for complex components
-
-### Project Organization
-✅ **Clean project root** - No temporary files, debug scripts, or build artifacts
-✅ **Script management** - Utility scripts in `scripts/` directory with descriptive names
-✅ **Temporary files** - Use `.temp.` in filename, automatically gitignored
-✅ **Configuration files** - Only active configs at project root (single `jest.config.json`)
-✅ **Documentation hierarchy** - README → Development Guide → Inline Comments
-
-**Script Organization**:
-```bash
-scripts/
-├── README.md                    # Documentation for scripts directory
-├── check-unused-imports.js      # Permanent utility scripts
-└── analyze-deps.temp.js         # Temporary scripts (auto-gitignored)
-```
-
-**Gitignore Patterns**:
-- `*.temp.*` - Temporary files of any type
-- `debug-*.ts`, `debug-*.js` - Debug scripts  
-- `test-*.ts`, `test-*.js`, `test-*.mjs` - Standalone test files
-- `analyze-*.js`, `check-*.js` - Analysis scripts
-
-### Deployment Readiness
-✅ **Environment variables** - All config externalized, no hardcoded values
-✅ **Graceful shutdown** - Proper cleanup of resources on process termination
-✅ **Health checks** - Components report their status for monitoring
-✅ **Error recovery** - System continues operating despite partial failures
-✅ **Monitoring hooks** - Proper logging and metrics collection points
+## 🔄 GOVERNANCE-BASED DEVELOPMENT WORKFLOW
+
+### Pre-Development
+1. **Check governance status**: `npm run governance:check`
+2. **Review failing checks**: Address any existing violations
+3. **Understand standards**: Reference `scripts/governance/README.md` for specific patterns
+
+### During Development
+1. **Write code** following patterns shown in governance scripts
+2. **Run relevant checks**: `npm run governance:naming`, `npm run governance:docs`, etc.
+3. **Fix violations immediately**: Don't accumulate technical debt
+
+### Pre-Commit
+1. **Run all deterministic checks**: `npm run governance:deterministic`
+2. **All checks must pass**: Commit only after ✅ status
+3. **Optional LLM checks**: `npm run governance:llm` (if OpenAI key available)
+
+### Code Review
+1. **Governance pre-verified**: Manual review focuses on business logic
+2. **No style discussions**: Standards are enforced automatically
+3. **Focus on architecture**: Review design decisions, not formatting
+
+This workflow **eliminates** the need to manually check the long development guide during reviews!
 
 ## Current System Status
 - **Test Suite**: 23 test suites, 480+ tests passing

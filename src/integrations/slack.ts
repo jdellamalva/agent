@@ -1,8 +1,15 @@
+/**
+ * Slack Integration - Real-time message handling and response generation
+ * 
+ * Provides bidirectional communication with Slack workspaces, including
+ * message parsing, OpenAI integration, and response formatting.
+ */
+
 import { App, SocketModeReceiver } from '@slack/bolt';
 import { WebClient } from '@slack/web-api';
 import { agentLogger } from '../utils/logger';
 import { SlackError } from '../utils/errors';
-import defaultConfig from '../utils/config';
+import { defaultConfig } from '../utils/config';
 import { OpenAIClient } from './openai';
 
 const logger = agentLogger.child({ component: 'slack' });
@@ -22,6 +29,9 @@ export interface SlackResponse {
   blocks?: any[];
 }
 
+/**
+ * Core Slack client for handling workspace integration and message processing
+ */
 export class SlackClient {
   private app: App;
   private webClient: WebClient;

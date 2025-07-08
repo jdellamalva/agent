@@ -19,6 +19,12 @@ export interface ServiceDefinition<T = any> {
   dependencies?: string[];
 }
 
+/**
+ * Dependency injection container for service management
+ * 
+ * Provides singleton and factory service registration with automatic
+ * dependency resolution and circular dependency detection.
+ */
 export class DIContainer {
   private services = new Map<string, ServiceDefinition>();
   private instances = new Map<string, any>();

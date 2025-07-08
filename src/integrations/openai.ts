@@ -1,11 +1,19 @@
+/**
+ * OpenAI Integration - Direct API communication and response processing
+ * 
+ * Provides high-level interface for OpenAI API interactions including
+ * chat completions, token management, rate limiting, and error handling.
+ */
+
 import OpenAI from 'openai';
 import { agentLogger } from '../utils/logger';
 import { OpenAIError } from '../utils/errors';
-import defaultConfig from '../utils/config';
+import { defaultConfig } from '../utils/config';
 import { PromptEngineer, SystemPromptContext, ParsedResponse } from '../core/promptEngineer';
 import { ResponseParser } from '../core/responseParser';
 import { TokenManager, TokenUsage as ManagerTokenUsage } from '../core/tokenManager';
 import { RateLimiter } from '../core/rateLimiter';
+import { NETWORK } from '../config/constants';
 
 const logger = agentLogger.child({ component: 'openai' });
 
@@ -39,6 +47,9 @@ export interface TokenUsage {
   estimatedCost?: number;
 }
 
+/**
+ * High-level OpenAI API client with integrated prompt engineering and response processing
+ */
 export class OpenAIClient {
   private client: OpenAI;
   private config: typeof defaultConfig;
@@ -150,17 +161,17 @@ export class OpenAIClient {
   private handleOpenAIAPIError(error: any): OpenAIError {
     if (error?.status) {
       switch (error.status) {
-        case 401:
+        case NETWORK.HTTP_STATUS_UNAUTHORIZED:
           return new OpenAIError('Invalid API key', 'INVALID_API_KEY', { originalError: error });
-        case 429:
+        case NETWORK.HTTP_STATUS_TOO_MANY_REQUESTS:
           return new OpenAIError('Rate limit exceeded', 'RATE_LIMIT_EXCEEDED', { originalError: error });
-        case 400:
+        case NETWORK.HTTP_STATUS_BAD_REQUEST:
           return new OpenAIError('Invalid request', 'INVALID_REQUEST', { originalError: error });
-        case 404:
+        case NETWORK.HTTP_STATUS_NOT_FOUND:
           return new OpenAIError('Model not found', 'MODEL_NOT_FOUND', { originalError: error });
-        case 500:
-        case 502:
-        case 503:
+        case NETWORK.HTTP_STATUS_SERVER_ERROR:
+        case NETWORK.HTTP_STATUS_BAD_GATEWAY:
+        case NETWORK.HTTP_STATUS_SERVICE_UNAVAILABLE:
           return new OpenAIError('OpenAI server error', 'SERVER_ERROR', { originalError: error });
         default:
           return new OpenAIError(
@@ -183,26 +194,18 @@ export class OpenAIClient {
    * Note: These are approximate pricing tiers, actual costs may vary
    */
   public calculateEstimatedCost(tokensUsed: TokenUsage, model: string): number {
-    // Pricing per 1K tokens (approximate, as of 2024)
-    const pricing: Record<string, { input: number; output: number }> = {
-      'gpt-4o': { input: 0.005, output: 0.015 },
-      'gpt-4': { input: 0.03, output: 0.06 },
-      'gpt-4-turbo': { input: 0.01, output: 0.03 },
-      'gpt-3.5-turbo': { input: 0.001, output: 0.002 },
-    };
-
-    const modelPricing = pricing[model] || pricing['gpt-4']; // Default to gpt-4 pricing
+    // Use centralized pricing from constants
+    const modelPricing = NETWORK.OPENAI_PRICING[model as keyof typeof NETWORK.OPENAI_PRICING] || NETWORK.OPENAI_PRICING['gpt-4']; // Default to gpt-4 pricing
     
     if (!modelPricing) {
       // Fallback pricing if model not found
-      const fallbackPricing = { input: 0.03, output: 0.06 };
-      const inputCost = (tokensUsed.promptTokens / 1000) * fallbackPricing.input;
-      const outputCost = (tokensUsed.completionTokens / 1000) * fallbackPricing.output;
+      const inputCost = (tokensUsed.promptTokens / NETWORK.TOKENS_PER_PRICING_UNIT) * NETWORK.FALLBACK_API_PRICING.input;
+      const outputCost = (tokensUsed.completionTokens / NETWORK.TOKENS_PER_PRICING_UNIT) * NETWORK.FALLBACK_API_PRICING.output;
       return inputCost + outputCost;
     }
     
-    const inputCost = (tokensUsed.promptTokens / 1000) * modelPricing.input;
-    const outputCost = (tokensUsed.completionTokens / 1000) * modelPricing.output;
+    const inputCost = (tokensUsed.promptTokens / NETWORK.TOKENS_PER_PRICING_UNIT) * modelPricing.input;
+    const outputCost = (tokensUsed.completionTokens / NETWORK.TOKENS_PER_PRICING_UNIT) * modelPricing.output;
     
     return inputCost + outputCost;
   }

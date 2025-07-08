@@ -13,6 +13,7 @@ export interface SystemPromptContext {
 }
 
 import { BaseCommand } from './commands/CommandSchema';
+import { VALIDATION } from '../config/constants';
 
 /**
  * @deprecated Use BaseCommand from CommandSchema instead
@@ -134,7 +135,7 @@ You must respond with a JSON object containing:
       "action": "action_name",
       "parameters": { "key": "value" },
       "reasoning": "Why this action is needed",
-      "confidence": 0.9,
+      "confidence": ${VALIDATION.HIGH_CONFIDENCE_THRESHOLD},
       "requiresApproval": false
     }
   ],

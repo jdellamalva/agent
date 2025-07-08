@@ -57,6 +57,9 @@ export interface SlackChannelConfig extends MessageChannelConfig {
   appToken: string;
 }
 
+/**
+ * Slack channel implementation for the agent communication system
+ */
 export class SlackChannel extends MessageChannel {
   private app: App;
   private webClient: WebClient;

@@ -433,10 +433,10 @@ describe('Logger', () => {
     });
   });
 
-  describe('default export', () => {
-    it('should export the main logger as default', async () => {
+  describe('named export', () => {
+    it('should export the main logger as named export', async () => {
       const logger = await import('../src/utils/logger');
-      expect(logger.default).toBe(mockLoggerInstance);
+      expect(logger.logger).toBe(mockLoggerInstance);
     });
   });
 });

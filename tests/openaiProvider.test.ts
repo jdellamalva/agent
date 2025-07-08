@@ -9,6 +9,7 @@ import { jest } from '@jest/globals';
 import { OpenAIProvider } from '../src/providers/llm/OpenAIProvider';
 import { LLMProviderConfig, LLMRequest } from '../src/core/llm/LLMProvider';
 import { OpenAIError } from '../src/utils/errors';
+import { OPENAI_PRICING } from '../src/config/constants';
 
 // Mock OpenAI client
 const mockCreate = jest.fn() as jest.MockedFunction<any>;
@@ -325,8 +326,9 @@ describe('OpenAIProvider', () => {
 
       const cost = provider.calculateCost(tokensUsed);
       
-      // GPT-4: $0.03/1K input, $0.06/1K output
-      const expectedCost = (1000 / 1000) * 0.03 + (500 / 1000) * 0.06;
+      // GPT-4: use constants for input/output pricing
+      const expectedCost = (1000 / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * OPENAI_PRICING.GPT_4.PROMPT_RATE + 
+                           (500 / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * OPENAI_PRICING.GPT_4.COMPLETION_RATE;
       expect(cost).toBe(expectedCost);
     });
 
@@ -340,8 +342,9 @@ describe('OpenAIProvider', () => {
 
       const cost = gpt35Provider.calculateCost(tokensUsed);
       
-      // GPT-3.5-turbo: $0.001/1K input, $0.002/1K output
-      const expectedCost = (1000 / 1000) * 0.001 + (500 / 1000) * 0.002;
+      // GPT-3.5-turbo: use constants for input/output pricing
+      const expectedCost = (1000 / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * OPENAI_PRICING.GPT_3_5_TURBO.PROMPT_RATE + 
+                           (500 / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * OPENAI_PRICING.GPT_3_5_TURBO.COMPLETION_RATE;
       expect(cost).toBe(expectedCost);
     });
 
@@ -356,7 +359,8 @@ describe('OpenAIProvider', () => {
       const cost = unknownModelProvider.calculateCost(tokensUsed);
       
       // Should default to GPT-4 pricing
-      const expectedCost = (1000 / 1000) * 0.03 + (500 / 1000) * 0.06;
+      const expectedCost = (1000 / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * OPENAI_PRICING.GPT_4.PROMPT_RATE + 
+                           (500 / OPENAI_PRICING.TOKEN_DIVISION_FACTOR) * OPENAI_PRICING.GPT_4.COMPLETION_RATE;
       expect(cost).toBe(expectedCost);
     });
   });

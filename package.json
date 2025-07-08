@@ -15,7 +15,18 @@
     "clean": "rimraf dist",
     "docker:build": "docker build -t llm-agent .",
     "docker:run": "docker-compose up",
-    "cli": "tsx src/cli/index.ts"
+    "cli": "tsx src/cli/index.ts",
+    "governance:check": "tsx scripts/governance/governance-runner.ts",
+    "governance:quick": "tsx scripts/governance/governance-runner.ts --profile=quick",
+    "governance:ci": "tsx scripts/governance/governance-runner.ts --profile=ci",
+    "governance:pre-commit": "tsx scripts/governance/governance-runner.ts --profile=preCommit",
+    "governance:magic-numbers": "tsx scripts/governance/check-magic-numbers.ts",
+    "governance:docs": "tsx scripts/governance/check-documentation.ts",
+    "governance:naming": "tsx scripts/governance/check-naming-conventions.ts",
+    "governance:imports": "tsx scripts/governance/check-import-export.ts",
+    "governance:todos": "tsx scripts/governance/check-todo-standards.ts",
+    "governance:dry": "tsx scripts/governance/analyze-dry.ts",
+    "governance:complexity": "tsx scripts/governance/analyze-complexity.ts"
   },
   "keywords": [
     "llm",

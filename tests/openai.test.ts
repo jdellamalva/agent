@@ -15,7 +15,7 @@ jest.mock('openai', () => {
 // Mock the config module
 jest.mock('../src/utils/config', () => ({
   __esModule: true,
-  default: {
+  defaultConfig: {
     openai: {
       apiKey: 'test-api-key',
       model: 'gpt-4o',
@@ -74,7 +74,7 @@ describe('OpenAIClient', () => {
       // Mock config without API key
       jest.doMock('../src/utils/config', () => ({
         __esModule: true,
-        default: {
+        defaultConfig: {
           openai: {
             apiKey: '',
             model: 'gpt-4o',

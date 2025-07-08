@@ -7,6 +7,7 @@
 
 import { agentLogger } from '../utils/logger';
 import { globalCaches, memoize } from './performance/CacheManager';
+import { VALIDATION } from '../config/constants';
 
 const logger = agentLogger.child({ component: 'tokenManager' });
 
@@ -263,13 +264,13 @@ export class TokenManager {
     // Check for repetitive content
     if (this.hasRepetitiveContent(prompt)) {
       recommendations.push('Remove repetitive instructions or examples');
-      estimatedSavings += currentTokens * 0.1; // Estimate 10% savings
+      estimatedSavings += currentTokens * VALIDATION.MILD_OPTIMIZATION_MULTIPLIER; // Estimate 10% savings
     }
 
     // Check for overly verbose instructions
     if (prompt.length > 2000) {
       recommendations.push('Consider breaking into smaller, focused prompts');
-      estimatedSavings += currentTokens * 0.15; // Estimate 15% savings
+      estimatedSavings += currentTokens * VALIDATION.AGGRESSIVE_OPTIMIZATION_MULTIPLIER; // Estimate 15% savings
     }
 
     // Check for unnecessary examples
@@ -286,7 +287,7 @@ export class TokenManager {
     }
 
     return {
-      shouldOptimize: recommendations.length > 0 && estimatedSavings > currentTokens * 0.05,
+      shouldOptimize: recommendations.length > 0 && estimatedSavings > currentTokens * VALIDATION.OPTIMIZATION_SAVINGS_THRESHOLD,
       recommendations,
       estimatedSavings: Math.floor(estimatedSavings)
     };

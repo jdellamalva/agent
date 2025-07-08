@@ -17,7 +17,7 @@ const mockLogger = {
 
 jest.mock('../src/utils/logger', () => ({
   __esModule: true,
-  default: mockLogger
+  logger: mockLogger
 }));
 
 import {
@@ -145,7 +145,7 @@ describe('Error Classes', () => {
 
   describe('ValidationError', () => {
     it('should create validation error with field context', () => {
-      const error = new ValidationError('Field is required', 'username', null);
+      const error = new ValidationError('Field is required', 'ERROR', { field: 'username', value: null });
 
       expect(error.code).toBe('VALIDATION_ERROR');
       expect(error.statusCode).toBe(400);
@@ -155,7 +155,7 @@ describe('Error Classes', () => {
 
   describe('WorkspaceError', () => {
     it('should create workspace error with workspace context', () => {
-      const error = new WorkspaceError('Access denied', 'ACCESS_DENIED', '/workspace/test', { reason: 'permissions' });
+      const error = new WorkspaceError('Access denied', 'ACCESS_DENIED', { workspace: '/workspace/test', reason: 'permissions' });
 
       expect(error.code).toBe('WORKSPACE_ACCESS_DENIED');
       expect(error.context).toEqual({ workspace: '/workspace/test', reason: 'permissions' });
@@ -165,13 +165,13 @@ describe('Error Classes', () => {
       const error = new WorkspaceError('Test error', 'TEST');
 
       expect(error.code).toBe('WORKSPACE_TEST');
-      expect(error.context).toEqual({ workspace: undefined });
+      expect(error.context).toBeUndefined();
     });
   });
 
   describe('GitError', () => {
     it('should create git error with repository context', () => {
-      const error = new GitError('Commit failed', 'COMMIT_FAILED', '/repo/test', { branch: 'main' });
+      const error = new GitError('Commit failed', 'COMMIT_FAILED', { repository: '/repo/test', branch: 'main' });
 
       expect(error.code).toBe('GIT_COMMIT_FAILED');
       expect(error.context).toEqual({ repository: '/repo/test', branch: 'main' });
@@ -180,11 +180,11 @@ describe('Error Classes', () => {
 
   describe('SecurityError', () => {
     it('should create security error with user context', () => {
-      const error = new SecurityError('Unauthorized access', 'UNAUTHORIZED', 'user-123', { ip: '192.168.1.1' });
+      const error = new SecurityError('Unauthorized access', 'UNAUTHORIZED', { user: 'user-123', ip: '192.168.1.1' });
 
       expect(error.code).toBe('SECURITY_UNAUTHORIZED');
       expect(error.statusCode).toBe(403);
-      expect(error.context).toEqual({ userId: 'user-123', ip: '192.168.1.1' });
+      expect(error.context).toEqual({ user: 'user-123', ip: '192.168.1.1' });
     });
   });
 });

@@ -36,7 +36,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import logger from './utils/logger';
+import { agentLogger as logger } from './utils/logger';
 import { initializeErrorRecovery } from './utils/errors';
 import { ConfigManager } from './core/config/ConfigManager';
 import { initializeProviders } from './core/providers/BuiltinProviders';
@@ -319,8 +319,6 @@ process.on('uncaughtException', (error) => {
   // Exit in case of uncaught exception
   process.exit(1);
 });
-
-export default { initializeAgent, startAgent, shutdownAgent };
 
 // Start the agent if this file is run directly
 if (require.main === module) {

@@ -35,6 +35,7 @@
  */
 
 import { agentLogger } from '../../utils/logger';
+import { CACHE } from '../../config/constants';
 
 const logger = agentLogger.child({ component: 'performance' });
 
@@ -82,15 +83,15 @@ export class LRUCache<T> {
    * 
    * @param options - Cache configuration:
    *   - ttl: Time-to-live in milliseconds (default: 5 minutes)
-   *   - maxSize: Maximum number of cached items (default: 1000)
+   *   - maxSize: Maximum number of cached items (default: from CACHE.DEFAULT_MAX_SIZE)
    *   - onEvict: Callback fired when items are evicted
    * 
    * **Side Effects**: Sets up internal data structures and default values
    */
   constructor(options: CacheOptions = {}) {
     this.options = {
-      ttl: options.ttl || 5 * 60 * 1000, // 5 minutes default
-      maxSize: options.maxSize || 1000,
+      ttl: options.ttl || CACHE.DEFAULT_TTL, // 5 minutes default
+      maxSize: options.maxSize || CACHE.DEFAULT_MAX_SIZE,
       onEvict: options.onEvict || (() => {})
     };
   }
@@ -391,7 +392,7 @@ export class BatchProcessor<T, R> {
  * Global caches for common operations
  */
 export const globalCaches = {
-  tokenEstimation: new LRUCache<number>({ ttl: 60 * 60 * 1000 }), // 1 hour
-  configValidation: new LRUCache<any>({ ttl: 10 * 60 * 1000 }), // 10 minutes
-  promptTemplates: new LRUCache<string>({ ttl: 30 * 60 * 1000 }) // 30 minutes
+  tokenEstimation: new LRUCache<number>({ ttl: CACHE.TOKEN_ESTIMATION_TTL }), // 1 hour
+  configValidation: new LRUCache<any>({ ttl: CACHE.CONFIG_VALIDATION_TTL }), // 10 minutes
+  promptTemplates: new LRUCache<string>({ ttl: CACHE.PROMPT_TEMPLATES_TTL }) // 30 minutes
 };

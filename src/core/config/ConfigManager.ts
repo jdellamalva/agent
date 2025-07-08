@@ -43,7 +43,10 @@
  */
 
 import dotenv from 'dotenv';
+import * as path from 'path';
+import * as fs from 'fs';
 import { agentLogger } from '../../utils/logger';
+import { NETWORK } from '../../config/constants';
 
 dotenv.config();
 
@@ -126,7 +129,7 @@ export class ConfigManager {
       errorHandling: {
         enableRecovery: true,
         defaultRetries: 3,
-        defaultRetryDelay: 1000,
+        defaultRetryDelay: NETWORK.DEFAULT_RETRY_DELAY,
         enableSecurityLogging: true,
         enablePerformanceLogging: true,
       },

@@ -49,6 +49,7 @@
  */
 
 import { agentLogger } from '../../utils/logger';
+import { VALIDATION } from '../../config/constants';
 
 const logger = agentLogger.child({ component: 'validation-engine' });
 
@@ -70,6 +71,9 @@ export interface ValidationReport {
   passedRules: string[];
 }
 
+/**
+ * Central validation engine for command schema and business rule validation
+ */
 export class ValidationEngine {
   private rules: Map<string, ValidationRule[]> = new Map();
 
@@ -170,7 +174,7 @@ export class ValidationEngine {
         }
       }),
 
-      lowConfidenceWarning: (threshold: number = 0.7): ValidationRule<any> => ({
+      lowConfidenceWarning: (threshold: number = VALIDATION.LOW_CONFIDENCE_WARNING_THRESHOLD): ValidationRule<any> => ({
         name: 'low-confidence-warning',
         severity: 'warning' as const,
         validate: (value: any): ValidationResult => {

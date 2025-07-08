@@ -2,6 +2,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { FILE_SYSTEM, NETWORK } from '../config/constants';
+
 export interface LoggingConfig {
   level: string;
   maxFileSize: number;
@@ -52,16 +54,16 @@ export interface AgentConfig {
 export const defaultConfig: AgentConfig = {
   logging: {
     level: process.env.LOG_LEVEL || 'info',
-    maxFileSize: 5242880, // 5MB
-    maxFiles: 5,
+    maxFileSize: FILE_SYSTEM.MAX_LOG_FILE_SIZE,
+    maxFiles: FILE_SYSTEM.MAX_LOG_FILES,
     enableConsole: process.env.NODE_ENV !== 'production',
     enableFile: true,
-    logDirectory: './logs',
+    logDirectory: FILE_SYSTEM.DEFAULT_LOG_DIR,
   },
   errorHandling: {
     enableRecovery: true,
-    defaultRetries: 3,
-    defaultRetryDelay: 1000,
+    defaultRetries: NETWORK.DEFAULT_MAX_RETRIES,
+    defaultRetryDelay: NETWORK.DEFAULT_RETRY_DELAY,
     enableSecurityLogging: true,
     enablePerformanceLogging: true,
   },
@@ -122,5 +124,3 @@ export const validateConfig = (config: AgentConfig): void => {
   
   // Phase 4+: Will validate security and other requirements later
 };
-
-export default defaultConfig;

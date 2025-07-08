@@ -1,7 +1,12 @@
 /**
  * Tests for Main Agent Initialization (index.ts)
  * 
- * Tests the main agent initialization process, configu    });
+import { initializeAgent } from '../src/index';
+import { agentLogger } from '../src/utils/logger';
+import { initializeErrorRecovery } from '../src/utils/errors';
+import { ConfigManager } from '../src/core/config/ConfigManager';
+
+const mockLogger = agentLogger as jest.Mocked<typeof agentLogger>;ts the main agent initialization process, configu    });
     
     mockInitializeErrorRecovery.mockReturnValue(undefined);
     
@@ -22,18 +27,6 @@ jest.mock('dotenv', () => ({
 
 jest.mock('../src/utils/logger', () => ({
   __esModule: true,
-  default: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-    child: jest.fn(() => ({
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn()
-    }))
-  },
   agentLogger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -72,7 +65,7 @@ jest.mock('fs-extra', () => ({
 }));
 
 import { initializeAgent } from '../src/index';
-import logger from '../src/utils/logger';
+import { agentLogger as logger } from '../src/utils/logger';
 import { initializeErrorRecovery } from '../src/utils/errors';
 import { ConfigManager } from '../src/core/config/ConfigManager';
 

@@ -37,6 +37,7 @@
 
 import winston from 'winston';
 import path from 'path';
+import { LOGGING, FILE_SYSTEM, OPENAI_PRICING } from '../config/constants';
 
 // Define log levels with priorities
 const logLevels = {
@@ -91,7 +92,7 @@ const logger = winston.createLogger({
   ),
   defaultMeta: {
     service: 'llm-agent',
-    version: process.env.npm_package_version || '1.0.0',
+    version: process.env.npm_package_version || LOGGING.DEFAULT_VERSION,
     environment: process.env.NODE_ENV || 'development',
   },
   transports: [
@@ -99,13 +100,13 @@ const logger = winston.createLogger({
     new winston.transports.File({
       filename: path.join(process.cwd(), 'logs', 'agent-error.log'),
       level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      maxsize: FILE_SYSTEM.MAX_LOG_FILE_SIZE,
+      maxFiles: FILE_SYSTEM.MAX_LOG_FILES,
     }),
     new winston.transports.File({
       filename: path.join(process.cwd(), 'logs', 'agent-combined.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      maxsize: FILE_SYSTEM.MAX_LOG_FILE_SIZE,
+      maxFiles: FILE_SYSTEM.MAX_LOG_FILES,
     }),
     // Console transport for development
     new winston.transports.Console({
@@ -113,7 +114,7 @@ const logger = winston.createLogger({
         winston.format.colorize({ all: true }),
         winston.format.simple(),
         winston.format.printf(({ timestamp, level, message, metadata, ...meta }) => {
-          const metaStr = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
+          const metaStr = Object.keys(meta).length ? JSON.stringify(meta, null, LOGGING.JSON_STRINGIFY_SPACING) : '';
           return `${timestamp} [${level}]: ${message} ${metaStr}`;
         })
       ),
@@ -127,12 +128,12 @@ export const createComponentLogger = (component: string) => {
 };
 
 // Specialized loggers for each component
-export const agentLogger = createComponentLogger('agent-core');
-export const slackLogger = createComponentLogger('slack-integration');
-export const openaiLogger = createComponentLogger('openai-integration');
-export const actionLogger = createComponentLogger('action-system');
-export const gitLogger = createComponentLogger('git-operations');
-export const workspaceLogger = createComponentLogger('workspace-management');
+export const agentLogger = createComponentLogger(LOGGING.COMPONENT_AGENT_CORE);
+export const slackLogger = createComponentLogger(LOGGING.COMPONENT_SLACK);
+export const openaiLogger = createComponentLogger(LOGGING.COMPONENT_OPENAI);
+export const actionLogger = createComponentLogger(LOGGING.COMPONENT_ACTION);
+export const gitLogger = createComponentLogger(LOGGING.COMPONENT_GIT);
+export const workspaceLogger = createComponentLogger(LOGGING.COMPONENT_WORKSPACE);
 
 // Agent-specific logging methods
 export const logAgentCycle = (cycleId: string, phase: 'think' | 'act' | 'observe', data: any) => {
@@ -209,13 +210,22 @@ export const logPerformanceMetric = (metric: string, value: number, unit: string
 // Helper function to calculate token costs (approximate)
 function calculateTokenCost(tokens: { prompt: number; completion: number }, model: string): number {
   const rates = {
-    'gpt-4': { prompt: 0.03, completion: 0.06 },
-    'gpt-4-turbo': { prompt: 0.01, completion: 0.03 },
-    'gpt-3.5-turbo': { prompt: 0.0015, completion: 0.002 },
+    'gpt-4': { 
+      prompt: OPENAI_PRICING.GPT_4.PROMPT_RATE, 
+      completion: OPENAI_PRICING.GPT_4.COMPLETION_RATE 
+    },
+    'gpt-4-turbo': { 
+      prompt: OPENAI_PRICING.GPT_4_TURBO.PROMPT_RATE, 
+      completion: OPENAI_PRICING.GPT_4_TURBO.COMPLETION_RATE 
+    },
+    'gpt-3.5-turbo': { 
+      prompt: OPENAI_PRICING.GPT_3_5_TURBO.PROMPT_RATE, 
+      completion: OPENAI_PRICING.GPT_3_5_TURBO.COMPLETION_RATE 
+    },
   };
   
   const rate = rates[model as keyof typeof rates] || rates['gpt-4'];
-  return (tokens.prompt * rate.prompt + tokens.completion * rate.completion) / 1000;
+  return (tokens.prompt * rate.prompt + tokens.completion * rate.completion) / OPENAI_PRICING.TOKEN_DIVISION_FACTOR;
 }
 
-export default logger;
+export { logger };
